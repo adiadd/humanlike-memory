@@ -124,10 +124,14 @@ export default defineSchema({
   // ============================================
 
   users: defineTable({
-    name: v.string(),
+    externalId: v.string(), // External auth ID (e.g., Clerk)
+    name: v.optional(v.string()),
     email: v.optional(v.string()),
+    lastActiveAt: v.number(), // For finding active users in reflection
     createdAt: v.number(),
-  }),
+  })
+    .index('by_externalId', ['externalId'])
+    .index('by_lastActive', ['lastActiveAt']),
 
   // ============================================
   // LAYER 1: SENSORY MEMORY
@@ -685,7 +689,7 @@ export const generateEmbedding = internalAction({
   args: { text: v.string() },
   handler: async (_ctx, { text }): Promise<number[]> => {
     const { embedding } = await embed({
-      model: openai.embedding('text-embedding-3-small'),
+      model: openai.embeddingModel('text-embedding-3-small'),
       value: text,
     })
     return embedding
@@ -766,7 +770,7 @@ export const extractAndEmbed = internalAction({
       return
     }
 
-    // 3. Extract entities and relationships
+    // 3. Extract entities and relationships using generateText + Output.object
     const { output: extraction } = await generateText({
       model: anthropic('claude-3-5-haiku-latest'),
       output: Output.object({ schema: ExtractionSchema }),
@@ -804,12 +808,41 @@ Rules:
 
 ```typescript
 // convex/shortTerm.ts
-import { internalMutation, query } from './_generated/server'
+import { internalMutation, internalQuery, query } from './_generated/server'
 import { v } from 'convex/values'
 import { internal } from './_generated/api'
 
 const TOPIC_SIMILARITY_THRESHOLD = 0.82
 const STM_EXPIRY_HOURS = 4
+
+// Query to get STM by ID (used by consolidation)
+export const get = internalQuery({
+  args: { id: v.id('shortTermMemories') },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id)
+  },
+})
+
+// Query to get promotion candidates
+export const getPromotionCandidates = internalQuery({
+  args: {
+    minImportance: v.float64(),
+    limit: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now()
+    return await ctx.db
+      .query('shortTermMemories')
+      .withIndex('by_user_importance')
+      .filter((q) =>
+        q.and(
+          q.gte(q.field('importance'), args.minImportance),
+          q.gt(q.field('expiresAt'), now),
+        ),
+      )
+      .take(args.limit)
+  },
+})
 
 export const promoteFromSensory = internalMutation({
   args: { sensoryMemoryId: v.id('sensoryMemories') },
@@ -896,14 +929,13 @@ async function findOrCreateTopic(
   embedding: number[],
   entities: Array<{ name: string; type: string; salience: number }>,
 ) {
-  // Search for similar STM to find existing topic
+  // Search for similar STM to find existing topic using vector search
   const similar = await ctx.db
     .query('shortTermMemories')
-    .withIndex('embedding_idx')
-    .vectorSearch('embedding', embedding, {
-      filter: (q: any) => q.eq('userId', userId),
-      limit: 3,
-    })
+    .withSearchIndex('embedding_idx', (q: any) =>
+      q.vectorSearch('embedding', embedding).eq('userId', userId),
+    )
+    .take(3)
 
   for (const memory of similar) {
     if (memory._score >= TOPIC_SIMILARITY_THRESHOLD && memory.topicId) {
@@ -952,12 +984,34 @@ export const byThread = query({
 
 ```typescript
 // convex/longTerm.ts
-import { internalMutation, internalAction, query } from './_generated/server'
+import {
+  internalMutation,
+  internalAction,
+  internalQuery,
+} from './_generated/server'
 import { v } from 'convex/values'
 import { internal } from './_generated/api'
 import { memoryStats } from './components'
 
 const DEDUP_SIMILARITY_THRESHOLD = 0.95
+
+// Query for high-importance memories (used by reflection)
+export const getHighImportance = internalQuery({
+  args: {
+    userId: v.id('users'),
+    minImportance: v.float64(),
+    limit: v.number(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('longTermMemories')
+      .withIndex('by_user', (q) =>
+        q.eq('userId', args.userId).eq('isActive', true),
+      )
+      .filter((q) => q.gte(q.field('currentImportance'), args.minImportance))
+      .take(args.limit)
+  },
+})
 
 export const consolidateFromSTM = internalAction({
   args: {
@@ -1067,20 +1121,23 @@ export const reinforce = internalMutation({
   },
 })
 
-export const searchSimilar = query({
+export const searchSimilar = internalQuery({
   args: {
     userId: v.id('users'),
     embedding: v.array(v.float64()),
     limit: v.number(),
   },
   handler: async (ctx, args) => {
+    // Use Convex vector search API
     return await ctx.db
       .query('longTermMemories')
-      .withIndex('embedding_idx')
-      .vectorSearch('embedding', args.embedding, {
-        filter: (q) => q.eq('userId', args.userId).eq('isActive', true),
-        limit: args.limit,
-      })
+      .withSearchIndex('embedding_idx', (q) =>
+        q
+          .vectorSearch('embedding', args.embedding)
+          .eq('userId', args.userId)
+          .eq('isActive', true),
+      )
+      .take(args.limit)
   },
 })
 
@@ -1252,11 +1309,13 @@ export const assembleContext = query({
     // 2. Retrieve relevant long-term memories via vector search
     const ltmResults = await ctx.db
       .query('longTermMemories')
-      .withIndex('embedding_idx')
-      .vectorSearch('embedding', args.queryEmbedding, {
-        filter: (q) => q.eq('userId', args.userId).eq('isActive', true),
-        limit: 15,
-      })
+      .withSearchIndex('embedding_idx', (q) =>
+        q
+          .vectorSearch('embedding', args.queryEmbedding)
+          .eq('userId', args.userId)
+          .eq('isActive', true),
+      )
+      .take(15)
 
     usedTokens = 0
     for (const ltm of ltmResults) {
@@ -1346,19 +1405,8 @@ import { openai } from '@ai-sdk/openai'
 import { embed } from 'ai'
 import { z } from 'zod'
 
-// Define the memory-aware agent
-export const memoryAgent = new Agent(components.agent, {
-  name: 'MemoryAgent',
-  languageModel: anthropic('claude-sonnet-4-20250514'),
-  textEmbeddingModel: openai.embedding('text-embedding-3-small'),
-  instructions: `You are a helpful AI assistant with memory of previous conversations.
-Use your memories to personalize responses and reference past context naturally.
-When learning important information about the user, save it using the saveToCore tool.`,
-  tools: { saveToCore, searchMemories },
-  maxSteps: 3,
-})
-
 // Tool: Save important facts to core memory
+// NOTE: Tools are defined before the agent so they can be referenced
 const saveToCore = createTool({
   description: 'Save an important fact about the user to permanent memory',
   args: z.object({
@@ -1374,7 +1422,7 @@ const saveToCore = createTool({
   }),
   handler: async (ctx, args) => {
     const { embedding } = await embed({
-      model: openai.embedding('text-embedding-3-small'),
+      model: openai.embeddingModel('text-embedding-3-small'),
       value: args.content,
     })
     await ctx.runMutation(internal.core.create, {
@@ -1397,7 +1445,7 @@ const searchMemories = createTool({
   }),
   handler: async (ctx, args) => {
     const { embedding } = await embed({
-      model: openai.embedding('text-embedding-3-small'),
+      model: openai.embeddingModel('text-embedding-3-small'),
       value: args.query,
     })
     const results = await ctx.runQuery(internal.longTerm.searchSimilar, {
@@ -1407,6 +1455,18 @@ const searchMemories = createTool({
     })
     return results.map((m) => m.summary)
   },
+})
+
+// Define the memory-aware agent
+export const memoryAgent = new Agent(components.agent, {
+  name: 'MemoryAgent',
+  languageModel: anthropic('claude-sonnet-4-5-20250514'),
+  textEmbeddingModel: openai.embeddingModel('text-embedding-3-small'),
+  instructions: `You are a helpful AI assistant with memory of previous conversations.
+Use your memories to personalize responses and reference past context naturally.
+When learning important information about the user, save it using the saveToCore tool.`,
+  tools: { saveToCore, searchMemories },
+  // Note: maxSteps is deprecated in AI SDK v6 - use stopWhen at call site instead
 })
 ```
 
@@ -1419,6 +1479,7 @@ import { memoryAgent } from './agent'
 import { createThread, listMessages } from '@convex-dev/agent'
 import { embeddingCache, rateLimiter, memoryStats } from './components'
 import { ConvexError } from 'convex/values'
+import { stepCountIs } from 'ai'
 
 // Create a new thread for a user
 export const createConversation = action({
@@ -1460,18 +1521,21 @@ export const sendMessage = action({
       queryEmbedding: embedding,
     })
 
-    // 3. Generate with memory-enriched context
+    // 3. Format memory context as system message
+    const memoryBlock = formatMemoryContext(memoryContext)
+
+    // 4. Generate with memory-enriched context
+    // Memory is injected via prompt array, not contextHandler (which is agent-level)
     const { thread } = await memoryAgent.continueThread(ctx, { threadId })
     const result = await thread.generateText({
-      prompt: message,
-      // Inject memory as additional context
-      contextHandler: async (messages) => {
-        const memoryBlock = formatMemoryContext(memoryContext)
-        return [{ role: 'system', content: memoryBlock }, ...messages]
-      },
+      prompt: [
+        { role: 'system', content: memoryBlock },
+        { role: 'user', content: message },
+      ],
+      stopWhen: stepCountIs(5), // AI SDK v6: use stopWhen instead of maxSteps
     })
 
-    // 4. Ingest into sensory memory (background)
+    // 5. Ingest into sensory memory (background)
     await ctx.scheduler.runAfter(0, internal.sensory.ingestFromThread, {
       threadId,
       userId,
@@ -1509,20 +1573,23 @@ export const streamMessage = action({
       queryEmbedding: embedding,
     })
 
-    // 3. Stream response
+    // 3. Format memory context as system message
+    const memoryBlock = formatMemoryContext(memoryContext)
+
+    // 4. Stream response with memory context
     const { thread } = await memoryAgent.continueThread(ctx, { threadId })
     await thread.streamText(
-      { prompt: message },
       {
-        saveStreamDeltas: true,
-        contextHandler: async (messages) => [
-          { role: 'system', content: formatMemoryContext(memoryContext) },
-          ...messages,
+        prompt: [
+          { role: 'system', content: memoryBlock },
+          { role: 'user', content: message },
         ],
+        stopWhen: stepCountIs(5),
       },
+      { saveStreamDeltas: true },
     )
 
-    // 4. Ingest into sensory memory (background)
+    // 5. Ingest into sensory memory (background)
     await ctx.scheduler.runAfter(0, internal.sensory.ingestFromThread, {
       threadId,
       userId,
@@ -1598,6 +1665,8 @@ function formatMemoryContext(context: MemoryContext): string {
 
 ```typescript
 // convex/sensory.ts - Updated for thread integration
+import { internalAction } from './_generated/server'
+import { v } from 'convex/values'
 import { listMessages } from '@convex-dev/agent'
 import { components, internal } from './_generated/api'
 
@@ -1612,9 +1681,10 @@ export const ingestFromThread = internalAction({
 
     for (const msg of messages.page) {
       if (msg.role === 'user' || msg.role === 'assistant') {
-        const content = typeof msg.content === 'string'
-          ? msg.content
-          : msg.content.map(c => c.type === 'text' ? c.text : '').join('')
+        const content =
+          typeof msg.content === 'string'
+            ? msg.content
+            : msg.content.map((c) => (c.type === 'text' ? c.text : '')).join('')
         await ctx.runMutation(internal.sensory.ingestMessage, {
           content,
           userId,
@@ -1688,12 +1758,14 @@ import { workflowManager, memoryStats } from './components'
 /**
  * Main consolidation workflow - runs every 15 minutes
  * Steps: cleanup expired STM → apply decay → promote to LTM
+ *
+ * NOTE: Workflow handlers receive (ctx, args) where ctx has step methods
  */
 export const consolidationWorkflow = workflowManager.define({
   args: {},
-  handler: async (step, _args): Promise<void> => {
+  handler: async (ctx, _args): Promise<void> => {
     // Step 1: Clean up expired short-term memories
-    const cleanupResult = await step.runMutation(
+    const cleanupResult = await ctx.runMutation(
       internal.consolidation.cleanupExpiredSTM,
       {},
     )
@@ -1701,21 +1773,26 @@ export const consolidationWorkflow = workflowManager.define({
     // Step 2 & 3: Run decay and promotion in parallel
     // These don't depend on each other
     await Promise.all([
-      step.runMutation(internal.consolidation.applyDecay, {}),
-      step.runAction(
-        internal.consolidation.promoteToLongTerm,
-        {},
-        { retry: true }, // Retry on transient errors
-      ),
+      ctx.runMutation(internal.consolidation.applyDecay, {}),
+      ctx.runAction(internal.consolidation.promoteToLongTerm, {}),
     ])
 
     // Step 4: Log consolidation run
-    await step.runMutation(internal.consolidation.logRun, {
+    await ctx.runMutation(internal.consolidation.logRun, {
       runType: 'promotion',
       memoriesProcessed: cleanupResult.processed,
       memoriesPromoted: cleanupResult.promoted,
       memoriesPruned: cleanupResult.pruned,
     })
+  },
+  // Configure retry behavior at workflow level
+  workpoolOptions: {
+    retryActionsByDefault: true,
+    defaultRetryBehavior: {
+      maxAttempts: 3,
+      initialBackoffMs: 1000,
+      base: 2,
+    },
   },
 })
 
@@ -1725,18 +1802,18 @@ export const consolidationWorkflow = workflowManager.define({
  */
 export const pruningWorkflow = workflowManager.define({
   args: {},
-  handler: async (step, _args): Promise<void> => {
+  handler: async (ctx, _args): Promise<void> => {
     // Step 1: Prune low-importance LTM
-    const pruned = await step.runMutation(
+    const pruned = await ctx.runMutation(
       internal.consolidation.pruneMemories,
       {},
     )
 
     // Step 2: Clean up orphaned edges
-    await step.runMutation(internal.edges.cleanupOrphaned, {})
+    await ctx.runMutation(internal.edges.cleanupOrphaned, {})
 
     // Step 3: Log
-    await step.runMutation(internal.consolidation.logRun, {
+    await ctx.runMutation(internal.consolidation.logRun, {
       runType: 'pruning',
       memoriesProcessed: pruned.processed,
       memoriesPromoted: 0,
@@ -1807,10 +1884,16 @@ export const applyDecay = internalMutation({
       const newImportance = memory.baseImportance * decay
 
       if (Math.abs(newImportance - memory.currentImportance) > 0.01) {
+        const oldDoc = memory
         await ctx.db.patch(memory._id, {
           currentImportance: Math.max(0.01, newImportance),
           updatedAt: now,
         })
+        // Sync aggregate since sortKey includes currentImportance
+        const newDoc = await ctx.db.get(memory._id)
+        if (newDoc) {
+          await memoryStats.replace(ctx, oldDoc, newDoc)
+        }
         decayed++
       }
     }
@@ -1916,7 +1999,11 @@ export const updateMemoryStats = internalMutation({
 
 ```typescript
 // convex/reflection.ts
-import { internalAction, internalMutation } from './_generated/server'
+import {
+  internalAction,
+  internalMutation,
+  internalQuery,
+} from './_generated/server'
 import { v } from 'convex/values'
 import { internal } from './_generated/api'
 import { generateText, Output } from 'ai'
@@ -1943,30 +2030,27 @@ const CORE_PROMOTION_CRITERIA = {
  */
 export const dailyReflectionWorkflow = workflowManager.define({
   args: { userId: v.optional(v.id('users')) },
-  handler: async (step, args): Promise<void> => {
+  handler: async (ctx, args): Promise<void> => {
     // Step 1: Get active users (or specific user)
     const users = args.userId
       ? [{ _id: args.userId }]
-      : await step.runQuery(internal.users.getActiveUsers, { days: 7 })
+      : await ctx.runQuery(internal.users.getActiveUsers, { days: 7 })
 
     // Step 2: Process each user's memories
     for (const user of users) {
       // Get high-importance memories
-      const memories = await step.runQuery(
-        internal.longTerm.getHighImportance,
-        {
-          userId: user._id,
-          minImportance: 0.7,
-          limit: 100,
-        },
-      )
+      const memories = await ctx.runQuery(internal.longTerm.getHighImportance, {
+        userId: user._id,
+        minImportance: 0.7,
+        limit: 100,
+      })
 
       if (memories.length < CORE_PROMOTION_CRITERIA.minOccurrences) {
         continue // Not enough data to find patterns
       }
 
       // Step 3: Use LLM to detect patterns (with retry)
-      const patterns = await step.runAction(
+      const patterns = await ctx.runAction(
         internal.reflection.detectPatternsWithLLM,
         { userId: user._id, memories },
         { retry: { maxAttempts: 3, initialBackoffMs: 2000, base: 2 } },
@@ -1975,7 +2059,7 @@ export const dailyReflectionWorkflow = workflowManager.define({
       // Step 4: Promote high-confidence patterns to core
       for (const pattern of patterns) {
         if (pattern.confidence >= CORE_PROMOTION_CRITERIA.minConfidence) {
-          await step.runMutation(internal.reflection.promoteToCore, {
+          await ctx.runMutation(internal.reflection.promoteToCoreAction, {
             userId: user._id,
             pattern,
           })
@@ -1983,7 +2067,7 @@ export const dailyReflectionWorkflow = workflowManager.define({
       }
 
       // Step 5: Log reflection
-      await step.runMutation(internal.consolidation.logRun, {
+      await ctx.runMutation(internal.consolidation.logRun, {
         runType: 'reflection',
         memoriesProcessed: memories.length,
         memoriesPromoted: patterns.filter(
@@ -2140,6 +2224,7 @@ export const promoteToCore = internalMutation({
       confidence: v.float64(),
       supportingCount: v.number(),
     }),
+    embedding: v.array(v.float64()), // Pre-computed embedding from action
   },
   handler: async (ctx, args) => {
     // Check if already in core (avoid duplicates)
@@ -2161,15 +2246,10 @@ export const promoteToCore = internalMutation({
       return { action: 'reinforced', id: existing._id }
     }
 
-    // Generate embedding for new core memory (cached)
-    const embedding = await embeddingCache.fetch(ctx, {
-      text: args.pattern.content,
-    })
-
-    // Create new core memory
+    // Create new core memory with pre-computed embedding
     const id = await ctx.db.insert('coreMemories', {
       content: args.pattern.content,
-      embedding,
+      embedding: args.embedding,
       category: args.pattern.category as any,
       confidence: args.pattern.confidence,
       evidenceCount: args.pattern.supportingCount,
@@ -2191,6 +2271,86 @@ export const promoteToCore = internalMutation({
     })
 
     return { action: 'created', id }
+  },
+})
+
+/**
+ * Action wrapper for promoteToCore that handles embedding generation.
+ * ActionCache can only be used in actions, not mutations.
+ * This is called from workflows.
+ */
+export const promoteToCoreAction = internalAction({
+  args: {
+    userId: v.id('users'),
+    pattern: v.object({
+      content: v.string(),
+      category: v.string(),
+      confidence: v.float64(),
+      supportingCount: v.number(),
+    }),
+  },
+  handler: async (ctx, args) => {
+    // Check if already exists first (avoid unnecessary embedding generation)
+    const existing = await ctx.runQuery(internal.reflection.checkExistingCore, {
+      userId: args.userId,
+      content: args.pattern.content,
+    })
+
+    if (existing) {
+      // Just reinforce - no new embedding needed
+      return await ctx.runMutation(internal.reflection.reinforceCore, {
+        coreId: existing._id,
+        supportingCount: args.pattern.supportingCount,
+      })
+    }
+
+    // Generate embedding for new core memory (cached)
+    const embedding = await embeddingCache.fetch(ctx, {
+      text: args.pattern.content,
+    })
+
+    // Create new core memory with embedding
+    return await ctx.runMutation(internal.reflection.promoteToCore, {
+      userId: args.userId,
+      pattern: args.pattern,
+      embedding,
+    })
+  },
+})
+
+// Helper query to check for existing core memory
+export const checkExistingCore = internalQuery({
+  args: {
+    userId: v.id('users'),
+    content: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('coreMemories')
+      .withIndex('by_user', (q) =>
+        q.eq('userId', args.userId).eq('isActive', true),
+      )
+      .filter((q) => q.eq(q.field('content'), args.content))
+      .first()
+  },
+})
+
+// Helper mutation to reinforce existing core memory
+export const reinforceCore = internalMutation({
+  args: {
+    coreId: v.id('coreMemories'),
+    supportingCount: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db.get(args.coreId)
+    if (!existing) return { action: 'not_found', id: args.coreId }
+
+    await ctx.db.patch(args.coreId, {
+      confidence: Math.min(1, existing.confidence + 0.05),
+      evidenceCount: existing.evidenceCount + args.supportingCount,
+      updatedAt: Date.now(),
+    })
+    return { action: 'reinforced', id: args.coreId }
   },
 })
 
@@ -2247,6 +2407,222 @@ export const logReflection = internalMutation({
       actionTaken: args.actionTaken,
       createdAt: Date.now(),
     })
+  },
+})
+```
+
+```typescript
+// convex/users.ts
+import { internalQuery, mutation, query } from './_generated/server'
+import { v } from 'convex/values'
+
+/**
+ * Get users who have been active in the last N days.
+ * Used by the reflection workflow to process memories.
+ */
+export const getActiveUsers = internalQuery({
+  args: { days: v.number() },
+  handler: async (ctx, args) => {
+    const cutoff = Date.now() - args.days * 24 * 60 * 60 * 1000
+
+    // Get users with recent activity
+    // Using lastActiveAt index for efficient querying
+    const activeUsers = await ctx.db
+      .query('users')
+      .withIndex('by_lastActive', (q) => q.gt('lastActiveAt', cutoff))
+      .take(100)
+
+    return activeUsers
+  },
+})
+
+/**
+ * Get or create a user by external ID (e.g., Clerk ID)
+ */
+export const getOrCreate = mutation({
+  args: {
+    externalId: v.string(),
+    name: v.optional(v.string()),
+    email: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Try to find existing user
+    const existing = await ctx.db
+      .query('users')
+      .withIndex('by_externalId', (q) => q.eq('externalId', args.externalId))
+      .first()
+
+    if (existing) {
+      // Update last active time
+      await ctx.db.patch(existing._id, { lastActiveAt: Date.now() })
+      return existing._id
+    }
+
+    // Create new user
+    const now = Date.now()
+    return await ctx.db.insert('users', {
+      externalId: args.externalId,
+      name: args.name,
+      email: args.email,
+      lastActiveAt: now,
+      createdAt: now,
+    })
+  },
+})
+
+/**
+ * Get a user by ID
+ */
+export const get = query({
+  args: { userId: v.id('users') },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.userId)
+  },
+})
+
+/**
+ * Update user's last active timestamp
+ */
+export const updateActivity = mutation({
+  args: { userId: v.id('users') },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.userId, { lastActiveAt: Date.now() })
+  },
+})
+```
+
+```typescript
+// convex/edges.ts (add to existing file)
+import {
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from './_generated/server'
+import { v } from 'convex/values'
+
+// ... existing edge creation/query code ...
+
+/**
+ * Clean up orphaned edges where source or target entity no longer has memories.
+ * Called by the pruning workflow.
+ */
+export const cleanupOrphaned = internalMutation({
+  handler: async (ctx): Promise<{ deleted: number }> => {
+    let deleted = 0
+
+    // Get a batch of edges to check
+    const edges = await ctx.db.query('memoryEdges').take(500)
+
+    for (const edge of edges) {
+      // Check if any memories reference the source entity
+      const sourceMemories = await ctx.db
+        .query('longTermMemories')
+        .withIndex('by_entity', (q) =>
+          q
+            .eq('userId', edge.userId)
+            .eq('entityType', edge.sourceType)
+            .eq('entityName', edge.sourceName),
+        )
+        .first()
+
+      // Check if any memories reference the target entity
+      const targetMemories = await ctx.db
+        .query('longTermMemories')
+        .withIndex('by_entity', (q) =>
+          q
+            .eq('userId', edge.userId)
+            .eq('entityType', edge.targetType)
+            .eq('entityName', edge.targetName),
+        )
+        .first()
+
+      if (!sourceMemories || !targetMemories) {
+        await ctx.db.delete(edge._id)
+        deleted++
+      }
+    }
+
+    return { deleted }
+  },
+})
+
+/**
+ * Create or strengthen an edge between two entities
+ */
+export const upsertEdge = mutation({
+  args: {
+    userId: v.id('users'),
+    sourceName: v.string(),
+    sourceType: v.string(),
+    targetName: v.string(),
+    targetType: v.string(),
+    relationType: v.string(),
+    fact: v.string(),
+    embedding: v.array(v.float64()),
+    strength: v.float64(),
+  },
+  handler: async (ctx, args) => {
+    // Check for existing edge
+    const existing = await ctx.db
+      .query('memoryEdges')
+      .withIndex('by_source', (q) =>
+        q.eq('userId', args.userId).eq('sourceName', args.sourceName),
+      )
+      .filter((q) => q.eq(q.field('targetName'), args.targetName))
+      .first()
+
+    if (existing) {
+      // Strengthen existing edge
+      await ctx.db.patch(existing._id, {
+        strength: Math.min(1, existing.strength + args.strength * 0.2),
+        updatedAt: Date.now(),
+      })
+      return existing._id
+    }
+
+    // Create new edge
+    return await ctx.db.insert('memoryEdges', {
+      userId: args.userId,
+      sourceName: args.sourceName,
+      sourceType: args.sourceType,
+      targetName: args.targetName,
+      targetType: args.targetType,
+      relationType: args.relationType,
+      fact: args.fact,
+      embedding: args.embedding,
+      strength: args.strength,
+      isActive: true,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    })
+  },
+})
+
+/**
+ * Get edges connected to an entity by name
+ */
+export const getConnected = query({
+  args: {
+    userId: v.id('users'),
+    entityName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const outgoing = await ctx.db
+      .query('memoryEdges')
+      .withIndex('by_source', (q) =>
+        q.eq('userId', args.userId).eq('sourceName', args.entityName),
+      )
+      .collect()
+
+    const incoming = await ctx.db
+      .query('memoryEdges')
+      .withIndex('by_target', (q) =>
+        q.eq('userId', args.userId).eq('targetName', args.entityName),
+      )
+      .collect()
+
+    return { outgoing, incoming }
   },
 })
 ```

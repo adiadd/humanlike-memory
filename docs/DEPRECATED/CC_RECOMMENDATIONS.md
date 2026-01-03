@@ -24,62 +24,67 @@ A comprehensive implementation guide for building an MVP/proof of concept of a h
 The blog describes a **five-layer memory architecture** modeled after human cognition. Here's a breakdown of each layer:
 
 ### 1.1 Core Memory (Foundation Layer)
+
 **Human analog:** Sense of self, personality, stable beliefs
 
-| Aspect | Description |
-|--------|-------------|
-| **Purpose** | Defines who the user IS - stable identity, preferences, biases |
-| **Persistence** | Most persistent - evolves slowly over weeks/months |
-| **Examples** | "User prefers concise answers", "User is a developer", "User lives in Bangalore" |
-| **Access** | Always in context, never evicted |
+| Aspect          | Description                                                                      |
+| --------------- | -------------------------------------------------------------------------------- |
+| **Purpose**     | Defines who the user IS - stable identity, preferences, biases                   |
+| **Persistence** | Most persistent - evolves slowly over weeks/months                               |
+| **Examples**    | "User prefers concise answers", "User is a developer", "User lives in Bangalore" |
+| **Access**      | Always in context, never evicted                                                 |
 
 **Key Insight:** This is NOT a cache - it's the agent's "personality profile" of the user that shapes ALL interactions.
 
 ### 1.2 Sensory Memory (Input Layer)
+
 **Human analog:** Brief sensory impressions before attention filters them
 
-| Aspect | Description |
-|--------|-------------|
-| **Purpose** | Captures raw input, filters noise, extracts entities/topics |
-| **Persistence** | Very brief - seconds to minutes |
-| **Examples** | "User just mentioned they're vegetarian" → Extract and score |
-| **Processing** | Attention scoring determines what passes through |
+| Aspect          | Description                                                  |
+| --------------- | ------------------------------------------------------------ |
+| **Purpose**     | Captures raw input, filters noise, extracts entities/topics  |
+| **Persistence** | Very brief - seconds to minutes                              |
+| **Examples**    | "User just mentioned they're vegetarian" → Extract and score |
+| **Processing**  | Attention scoring determines what passes through             |
 
 **Key Insight:** This layer PREVENTS vector database clutter by filtering before storage.
 
 ### 1.3 Short-Term Memory (Working Memory)
+
 **Human analog:** Active thoughts during a conversation
 
-| Aspect | Description |
-|--------|-------------|
-| **Purpose** | Buffer for active reasoning, current context, topic continuity |
-| **Persistence** | Minutes to hours - single session or short span |
-| **Examples** | Current conversation topics, reasoning traces, transient context |
-| **Promotion** | If topic persists across interactions → promote to long-term |
+| Aspect          | Description                                                      |
+| --------------- | ---------------------------------------------------------------- |
+| **Purpose**     | Buffer for active reasoning, current context, topic continuity   |
+| **Persistence** | Minutes to hours - single session or short span                  |
+| **Examples**    | Current conversation topics, reasoning traces, transient context |
+| **Promotion**   | If topic persists across interactions → promote to long-term     |
 
 **Key Insight:** Actively manages focus and groups related messages under shared topics.
 
 ### 1.4 Long-Term Memory (Knowledge Store)
+
 **Human analog:** Semantic and episodic memory
 
-| Aspect | Description |
-|--------|-------------|
-| **Purpose** | Consolidated knowledge indexed by entity, topic, relationship |
-| **Persistence** | Days to months - survives sessions |
-| **Types** | **Semantic** (facts/concepts) + **Episodic** (experiences/events) |
-| **Structure** | Forms conceptual graphs, not flat vector dumps |
+| Aspect          | Description                                                       |
+| --------------- | ----------------------------------------------------------------- |
+| **Purpose**     | Consolidated knowledge indexed by entity, topic, relationship     |
+| **Persistence** | Days to months - survives sessions                                |
+| **Types**       | **Semantic** (facts/concepts) + **Episodic** (experiences/events) |
+| **Structure**   | Forms conceptual graphs, not flat vector dumps                    |
 
 **Key Insight:** Unlike vector databases, this layer organizes information into STRUCTURED knowledge graphs.
 
 ### 1.5 Memory Managers (Background Processes)
+
 **Human analog:** Sleep-based memory consolidation
 
-| Aspect | Description |
-|--------|-------------|
-| **Purpose** | Periodic review, promotion, demotion, pruning, reflection |
-| **Timing** | Background processes - not during active conversation |
-| **Operations** | Consolidate, compress, archive, delete, reflect |
-| **Output** | Meta-summaries, refined memories, pruned clutter |
+| Aspect         | Description                                               |
+| -------------- | --------------------------------------------------------- |
+| **Purpose**    | Periodic review, promotion, demotion, pruning, reflection |
+| **Timing**     | Background processes - not during active conversation     |
+| **Operations** | Consolidate, compress, archive, delete, reflect           |
+| **Output**     | Meta-summaries, refined memories, pruned clutter          |
 
 **Key Insight:** This is the "sleep cycle" - critical for preventing memory degradation.
 
@@ -102,14 +107,14 @@ Problems:
 
 ### What's Missing
 
-| Missing Element | Consequence |
-|-----------------|-------------|
-| **Attention filtering** | Every message stored, even "hmm, let me think" |
-| **Topic grouping** | Related thoughts scattered across embeddings |
-| **Temporal awareness** | "User was vegetarian" vs "User is vegetarian" |
+| Missing Element           | Consequence                                          |
+| ------------------------- | ---------------------------------------------------- |
+| **Attention filtering**   | Every message stored, even "hmm, let me think"       |
+| **Topic grouping**        | Related thoughts scattered across embeddings         |
+| **Temporal awareness**    | "User was vegetarian" vs "User is vegetarian"        |
 | **Relationship modeling** | "Bob works at Acme" is just text, not a relationship |
-| **Decay/forgetting** | Old irrelevant data competes with current context |
-| **Consolidation** | 10 similar memories instead of 1 refined one |
+| **Decay/forgetting**      | Old irrelevant data competes with current context    |
+| **Consolidation**         | 10 similar memories instead of 1 refined one         |
 
 ### The Goal
 
@@ -265,15 +270,15 @@ Input → Filter → Short-Term Buffer → Consolidate → Long-Term Graph
 
 ### 4.1 Technology Choices
 
-| Component | Recommended Approach | Why |
-|-----------|---------------------|-----|
-| **Sensory Memory** | Convex action with LLM | Real-time entity extraction, attention scoring |
-| **Short-Term Memory** | Convex table with TTL | Real-time subscriptions, automatic cleanup |
-| **Long-Term Memory** | Convex + Vector Index | Hybrid semantic + keyword search |
-| **Knowledge Graph** | Convex relational tables | Entity-relationship modeling |
-| **Memory Managers** | Convex cron jobs | Background consolidation, decay |
-| **Core Memory** | Convex table (always loaded) | Persistent user/agent profiles |
-| **Frontend** | TanStack Query + shadcn | Real-time UI updates |
+| Component             | Recommended Approach         | Why                                            |
+| --------------------- | ---------------------------- | ---------------------------------------------- |
+| **Sensory Memory**    | Convex action with LLM       | Real-time entity extraction, attention scoring |
+| **Short-Term Memory** | Convex table with TTL        | Real-time subscriptions, automatic cleanup     |
+| **Long-Term Memory**  | Convex + Vector Index        | Hybrid semantic + keyword search               |
+| **Knowledge Graph**   | Convex relational tables     | Entity-relationship modeling                   |
+| **Memory Managers**   | Convex cron jobs             | Background consolidation, decay                |
+| **Core Memory**       | Convex table (always loaded) | Persistent user/agent profiles                 |
+| **Frontend**          | TanStack Query + shadcn      | Real-time UI updates                           |
 
 ### 4.2 Why Convex Fits Well
 
@@ -316,24 +321,24 @@ For MVP, use simple heuristics before adding LLM-based scoring:
 
 ```typescript
 const scoreAttention = (input: string, entities: Entity[]): number => {
-  let score = 0;
+  let score = 0
 
   // Entity-based scoring
-  score += entities.length * 0.1;
-  score += entities.filter(e => e.type === 'person').length * 0.2;
-  score += entities.filter(e => e.type === 'preference').length * 0.3;
+  score += entities.length * 0.1
+  score += entities.filter((e) => e.type === 'person').length * 0.2
+  score += entities.filter((e) => e.type === 'preference').length * 0.3
 
   // Pattern-based scoring
-  if (input.includes('always') || input.includes('never')) score += 0.2;
-  if (input.includes('prefer') || input.includes('like')) score += 0.25;
-  if (input.includes('I am') || input.includes("I'm")) score += 0.3;
+  if (input.includes('always') || input.includes('never')) score += 0.2
+  if (input.includes('prefer') || input.includes('like')) score += 0.25
+  if (input.includes('I am') || input.includes("I'm")) score += 0.3
 
   // Penalize low-value patterns
-  if (input.length < 20) score -= 0.2;
-  if (input.match(/^(ok|sure|thanks|hmm)/i)) score -= 0.3;
+  if (input.length < 20) score -= 0.2
+  if (input.match(/^(ok|sure|thanks|hmm)/i)) score -= 0.3
 
-  return Math.max(0, Math.min(1, score));
-};
+  return Math.max(0, Math.min(1, score))
+}
 ```
 
 ---
@@ -344,8 +349,8 @@ const scoreAttention = (input: string, entities: Entity[]): number => {
 
 ```typescript
 // convex/schema.ts
-import { defineSchema, defineTable } from "convex/server";
-import { v } from "convex/values";
+import { defineSchema, defineTable } from 'convex/server'
+import { v } from 'convex/values'
 
 export default defineSchema({
   // ============================================
@@ -359,23 +364,23 @@ export default defineSchema({
   }),
 
   conversations: defineTable({
-    agentId: v.id("agents"),
+    agentId: v.id('agents'),
     title: v.optional(v.string()),
     startedAt: v.number(),
     endedAt: v.optional(v.number()),
     messageCount: v.number(),
   })
-    .index("by_agent", ["agentId"])
-    .index("by_agent_and_time", ["agentId", "startedAt"]),
+    .index('by_agent', ['agentId'])
+    .index('by_agent_and_time', ['agentId', 'startedAt']),
 
   messages: defineTable({
-    conversationId: v.id("conversations"),
-    role: v.union(v.literal("user"), v.literal("assistant")),
+    conversationId: v.id('conversations'),
+    role: v.union(v.literal('user'), v.literal('assistant')),
     content: v.string(),
     timestamp: v.number(),
   })
-    .index("by_conversation", ["conversationId"])
-    .index("by_conversation_and_time", ["conversationId", "timestamp"]),
+    .index('by_conversation', ['conversationId'])
+    .index('by_conversation_and_time', ['conversationId', 'timestamp']),
 
   // ============================================
   // MEMORY TIERS
@@ -384,9 +389,9 @@ export default defineSchema({
   memories: defineTable({
     // Memory tier
     tier: v.union(
-      v.literal("sensory"),
-      v.literal("short_term"),
-      v.literal("long_term")
+      v.literal('sensory'),
+      v.literal('short_term'),
+      v.literal('long_term'),
     ),
 
     // Content
@@ -394,24 +399,24 @@ export default defineSchema({
     summary: v.optional(v.string()),
 
     // Metadata
-    importance: v.float64(),      // 0.0 to 1.0
-    accessCount: v.number(),       // Times retrieved
-    lastAccessedAt: v.number(),    // For decay calculation
+    importance: v.float64(), // 0.0 to 1.0
+    accessCount: v.number(), // Times retrieved
+    lastAccessedAt: v.number(), // For decay calculation
 
     // Vector embedding for semantic search
     embedding: v.optional(v.array(v.float64())),
 
     // Categorization
     memoryType: v.union(
-      v.literal("semantic"),       // Facts, knowledge
-      v.literal("episodic"),       // Experiences, events
-      v.literal("procedural")      // How-to, behaviors
+      v.literal('semantic'), // Facts, knowledge
+      v.literal('episodic'), // Experiences, events
+      v.literal('procedural'), // How-to, behaviors
     ),
 
     // Relationships
-    agentId: v.id("agents"),
-    conversationId: v.optional(v.id("conversations")),
-    sourceMemoryId: v.optional(v.id("memories")),  // Consolidation lineage
+    agentId: v.id('agents'),
+    conversationId: v.optional(v.id('conversations')),
+    sourceMemoryId: v.optional(v.id('memories')), // Consolidation lineage
 
     // Soft delete
     deletedAt: v.optional(v.number()),
@@ -420,20 +425,20 @@ export default defineSchema({
     createdAt: v.number(),
     consolidatedAt: v.optional(v.number()),
   })
-    .index("by_tier", ["tier"])
-    .index("by_agent", ["agentId"])
-    .index("by_agent_and_tier", ["agentId", "tier"])
-    .index("by_importance", ["importance"])
-    .index("by_last_accessed", ["lastAccessedAt"])
-    .index("by_conversation", ["conversationId"])
-    .searchIndex("search_content", {
-      searchField: "content",
-      filterFields: ["tier", "agentId", "memoryType"],
+    .index('by_tier', ['tier'])
+    .index('by_agent', ['agentId'])
+    .index('by_agent_and_tier', ['agentId', 'tier'])
+    .index('by_importance', ['importance'])
+    .index('by_last_accessed', ['lastAccessedAt'])
+    .index('by_conversation', ['conversationId'])
+    .searchIndex('search_content', {
+      searchField: 'content',
+      filterFields: ['tier', 'agentId', 'memoryType'],
     })
-    .vectorIndex("by_embedding", {
-      vectorField: "embedding",
+    .vectorIndex('by_embedding', {
+      vectorField: 'embedding',
       dimensions: 1536,
-      filterFields: ["tier", "agentId", "memoryType"],
+      filterFields: ['tier', 'agentId', 'memoryType'],
     }),
 
   // ============================================
@@ -441,7 +446,7 @@ export default defineSchema({
   // ============================================
 
   coreMemory: defineTable({
-    agentId: v.id("agents"),
+    agentId: v.id('agents'),
 
     // User profile - static attributes
     userProfile: v.object({
@@ -455,11 +460,13 @@ export default defineSchema({
     // User traits - dynamic, evolving
     userTraits: v.object({
       interests: v.array(v.string()),
-      preferences: v.array(v.object({
-        key: v.string(),
-        value: v.string(),
-        confidence: v.float64(),
-      })),
+      preferences: v.array(
+        v.object({
+          key: v.string(),
+          value: v.string(),
+          confidence: v.float64(),
+        }),
+      ),
       habits: v.array(v.string()),
       communicationStyle: v.optional(v.string()),
     }),
@@ -475,8 +482,7 @@ export default defineSchema({
     // Metadata
     createdAt: v.number(),
     updatedAt: v.number(),
-  })
-    .index("by_agent", ["agentId"]),
+  }).index('by_agent', ['agentId']),
 
   // ============================================
   // ENTITY GRAPH (Knowledge Graph)
@@ -484,7 +490,7 @@ export default defineSchema({
 
   entities: defineTable({
     name: v.string(),
-    type: v.string(),  // person, organization, concept, location, event, etc.
+    type: v.string(), // person, organization, concept, location, event, etc.
     description: v.optional(v.string()),
     aliases: v.optional(v.array(v.string())),
 
@@ -497,62 +503,62 @@ export default defineSchema({
     lastSeenAt: v.number(),
 
     // Ownership
-    agentId: v.id("agents"),
+    agentId: v.id('agents'),
 
     // Soft delete
     deletedAt: v.optional(v.number()),
   })
-    .index("by_name", ["name"])
-    .index("by_type", ["type"])
-    .index("by_agent", ["agentId"])
-    .index("by_agent_and_name", ["agentId", "name"])
-    .index("by_mention_count", ["mentionCount"])
-    .searchIndex("search_entities", {
-      searchField: "name",
-      filterFields: ["type", "agentId"],
+    .index('by_name', ['name'])
+    .index('by_type', ['type'])
+    .index('by_agent', ['agentId'])
+    .index('by_agent_and_name', ['agentId', 'name'])
+    .index('by_mention_count', ['mentionCount'])
+    .searchIndex('search_entities', {
+      searchField: 'name',
+      filterFields: ['type', 'agentId'],
     })
-    .vectorIndex("entity_embedding", {
-      vectorField: "embedding",
+    .vectorIndex('entity_embedding', {
+      vectorField: 'embedding',
       dimensions: 1536,
-      filterFields: ["type", "agentId"],
+      filterFields: ['type', 'agentId'],
     }),
 
   entityRelationships: defineTable({
-    fromEntityId: v.id("entities"),
-    toEntityId: v.id("entities"),
-    relationshipType: v.string(),  // works_at, knows, prefers, located_in, etc.
+    fromEntityId: v.id('entities'),
+    toEntityId: v.id('entities'),
+    relationshipType: v.string(), // works_at, knows, prefers, located_in, etc.
 
     // Relationship strength/confidence
     strength: v.float64(),
 
     // Evidence supporting this relationship
-    evidence: v.array(v.id("memories")),
+    evidence: v.array(v.id('memories')),
 
     // Temporal validity
     validFrom: v.optional(v.number()),
-    validUntil: v.optional(v.number()),  // null = still valid
+    validUntil: v.optional(v.number()), // null = still valid
 
     // Ownership
-    agentId: v.id("agents"),
+    agentId: v.id('agents'),
 
     // Timestamps
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_from_entity", ["fromEntityId"])
-    .index("by_to_entity", ["toEntityId"])
-    .index("by_relationship_type", ["relationshipType"])
-    .index("by_agent", ["agentId"]),
+    .index('by_from_entity', ['fromEntityId'])
+    .index('by_to_entity', ['toEntityId'])
+    .index('by_relationship_type', ['relationshipType'])
+    .index('by_agent', ['agentId']),
 
   // Memory <-> Entity associations
   memoryEntities: defineTable({
-    memoryId: v.id("memories"),
-    entityId: v.id("entities"),
-    role: v.string(),  // subject, object, context, mention
-    salience: v.float64(),  // How prominent in the memory
+    memoryId: v.id('memories'),
+    entityId: v.id('entities'),
+    role: v.string(), // subject, object, context, mention
+    salience: v.float64(), // How prominent in the memory
   })
-    .index("by_memory", ["memoryId"])
-    .index("by_entity", ["entityId"]),
+    .index('by_memory', ['memoryId'])
+    .index('by_entity', ['entityId']),
 
   // ============================================
   // MEMORY MANAGEMENT
@@ -560,28 +566,28 @@ export default defineSchema({
 
   consolidationJobs: defineTable({
     status: v.union(
-      v.literal("pending"),
-      v.literal("in_progress"),
-      v.literal("completed"),
-      v.literal("failed")
+      v.literal('pending'),
+      v.literal('in_progress'),
+      v.literal('completed'),
+      v.literal('failed'),
     ),
     jobType: v.union(
-      v.literal("consolidate"),
-      v.literal("decay"),
-      v.literal("promote"),
-      v.literal("reflect"),
-      v.literal("cleanup")
+      v.literal('consolidate'),
+      v.literal('decay'),
+      v.literal('promote'),
+      v.literal('reflect'),
+      v.literal('cleanup'),
     ),
     sourceTier: v.optional(v.string()),
     targetTier: v.optional(v.string()),
     processedCount: v.number(),
-    agentId: v.optional(v.id("agents")),
+    agentId: v.optional(v.id('agents')),
     startedAt: v.number(),
     completedAt: v.optional(v.number()),
     error: v.optional(v.string()),
   })
-    .index("by_status", ["status"])
-    .index("by_type", ["jobType"]),
+    .index('by_status', ['status'])
+    .index('by_type', ['jobType']),
 
   // Archived memories (cold storage)
   archives: defineTable({
@@ -589,65 +595,65 @@ export default defineSchema({
     data: v.any(),
     archivedAt: v.number(),
     reason: v.string(),
-    agentId: v.id("agents"),
+    agentId: v.id('agents'),
   })
-    .index("by_original_id", ["originalId"])
-    .index("by_agent", ["agentId"]),
-});
+    .index('by_original_id', ['originalId'])
+    .index('by_agent', ['agentId']),
+})
 ```
 
 ### 5.2 Cron Jobs Configuration
 
 ```typescript
 // convex/crons.ts
-import { cronJobs } from "convex/server";
-import { internal } from "./_generated/api";
+import { cronJobs } from 'convex/server'
+import { internal } from './_generated/api'
 
-const crons = cronJobs();
+const crons = cronJobs()
 
 // Sensory → Short-term: Every 5 minutes
 crons.interval(
-  "consolidate-sensory",
+  'consolidate-sensory',
   { minutes: 5 },
-  internal.memoryManager.consolidateSensoryToShortTerm
-);
+  internal.memoryManager.consolidateSensoryToShortTerm,
+)
 
 // Short-term → Long-term: Every hour
 crons.interval(
-  "consolidate-short-term",
+  'consolidate-short-term',
   { hours: 1 },
-  internal.memoryManager.consolidateShortTermToLongTerm
-);
+  internal.memoryManager.consolidateShortTermToLongTerm,
+)
 
 // Decay unused memories: Every 6 hours
 crons.interval(
-  "decay-memories",
+  'decay-memories',
   { hours: 6 },
-  internal.memoryManager.applyDecay
-);
+  internal.memoryManager.applyDecay,
+)
 
 // Cleanup deleted memories: Daily at 3 AM UTC
 crons.daily(
-  "cleanup-deleted",
+  'cleanup-deleted',
   { hourUTC: 3, minuteUTC: 0 },
-  internal.memoryManager.purgeDeletedMemories
-);
+  internal.memoryManager.purgeDeletedMemories,
+)
 
 // Generate reflections: Daily at 4 AM UTC
 crons.daily(
-  "generate-reflections",
+  'generate-reflections',
   { hourUTC: 4, minuteUTC: 0 },
-  internal.memoryManager.generateReflections
-);
+  internal.memoryManager.generateReflections,
+)
 
 // Update core memory from patterns: Weekly
 crons.weekly(
-  "update-core-memory",
-  { dayOfWeek: "sunday", hourUTC: 5, minuteUTC: 0 },
-  internal.memoryManager.updateCoreMemoryFromPatterns
-);
+  'update-core-memory',
+  { dayOfWeek: 'sunday', hourUTC: 5, minuteUTC: 0 },
+  internal.memoryManager.updateCoreMemoryFromPatterns,
+)
 
-export default crons;
+export default crons
 ```
 
 ---
@@ -697,6 +703,7 @@ src/
 ### 6.2 Key UI Components
 
 **Memory Tier Visualization:**
+
 ```tsx
 // Visual representation of memory flowing through tiers
 <MemoryTierDiagram>
@@ -711,6 +718,7 @@ src/
 ```
 
 **Knowledge Graph (using react-force-graph or vis-network):**
+
 ```tsx
 // Interactive graph visualization of entities and relationships
 <KnowledgeGraph
@@ -722,6 +730,7 @@ src/
 ```
 
 **Chat with Memory Context:**
+
 ```tsx
 // Show which memories were used for response
 <ChatWindow>
@@ -742,15 +751,16 @@ src/
 
 **Goal:** Basic memory storage and retrieval
 
-| Task | Priority | Complexity |
-|------|----------|------------|
-| Create Convex schema (memories, entities, coreMemory) | High | Medium |
-| Implement basic CRUD mutations | High | Low |
-| Add vector embeddings to memories | High | Medium |
-| Create simple chat interface | High | Low |
-| Implement memory retrieval (vector search) | High | Medium |
+| Task                                                  | Priority | Complexity |
+| ----------------------------------------------------- | -------- | ---------- |
+| Create Convex schema (memories, entities, coreMemory) | High     | Medium     |
+| Implement basic CRUD mutations                        | High     | Low        |
+| Add vector embeddings to memories                     | High     | Medium     |
+| Create simple chat interface                          | High     | Low        |
+| Implement memory retrieval (vector search)            | High     | Medium     |
 
 **Deliverables:**
+
 - Working schema with all tables
 - Chat that stores messages as memories
 - Basic semantic search retrieval
@@ -760,15 +770,16 @@ src/
 
 **Goal:** Implement memory tiers and promotion
 
-| Task | Priority | Complexity |
-|------|----------|------------|
-| Implement sensory memory filtering | High | Medium |
-| Add attention scoring logic | High | Medium |
-| Create short-term memory buffer | High | Low |
-| Implement STM → LTM promotion | High | Medium |
-| Add cron jobs for consolidation | Medium | Low |
+| Task                               | Priority | Complexity |
+| ---------------------------------- | -------- | ---------- |
+| Implement sensory memory filtering | High     | Medium     |
+| Add attention scoring logic        | High     | Medium     |
+| Create short-term memory buffer    | High     | Low        |
+| Implement STM → LTM promotion      | High     | Medium     |
+| Add cron jobs for consolidation    | Medium   | Low        |
 
 **Deliverables:**
+
 - Automatic filtering of low-value input
 - Topic grouping in short-term memory
 - Automatic promotion to long-term
@@ -778,15 +789,16 @@ src/
 
 **Goal:** Entity extraction and relationships
 
-| Task | Priority | Complexity |
-|------|----------|------------|
-| Implement entity extraction (LLM-based) | High | High |
-| Create entity storage and deduplication | High | Medium |
-| Implement relationship extraction | High | High |
-| Add graph traversal queries | Medium | Medium |
-| Build knowledge graph UI | Medium | High |
+| Task                                    | Priority | Complexity |
+| --------------------------------------- | -------- | ---------- |
+| Implement entity extraction (LLM-based) | High     | High       |
+| Create entity storage and deduplication | High     | Medium     |
+| Implement relationship extraction       | High     | High       |
+| Add graph traversal queries             | Medium   | Medium     |
+| Build knowledge graph UI                | Medium   | High       |
 
 **Deliverables:**
+
 - Entities automatically extracted from messages
 - Relationships between entities captured
 - Graph visualization of knowledge
@@ -796,15 +808,16 @@ src/
 
 **Goal:** Persistent user understanding
 
-| Task | Priority | Complexity |
-|------|----------|------------|
-| Implement core memory structure | High | Low |
-| Add user profile extraction | High | Medium |
-| Implement preference learning | High | High |
-| Core memory always in context | High | Low |
-| Add core memory editing UI | Medium | Low |
+| Task                            | Priority | Complexity |
+| ------------------------------- | -------- | ---------- |
+| Implement core memory structure | High     | Low        |
+| Add user profile extraction     | High     | Medium     |
+| Implement preference learning   | High     | High       |
+| Core memory always in context   | High     | Low        |
+| Add core memory editing UI      | Medium   | Low        |
 
 **Deliverables:**
+
 - Core memory persisting user traits
 - Automatic profile updates from patterns
 - Preferences influencing responses
@@ -814,15 +827,16 @@ src/
 
 **Goal:** Decay, forgetting, reflection
 
-| Task | Priority | Complexity |
-|------|----------|------------|
-| Implement memory decay algorithm | Medium | Medium |
-| Add forgetting/pruning logic | Medium | Medium |
-| Create reflection generation | Medium | High |
-| Implement memory consolidation | Medium | High |
-| Add management dashboard | Low | Medium |
+| Task                             | Priority | Complexity |
+| -------------------------------- | -------- | ---------- |
+| Implement memory decay algorithm | Medium   | Medium     |
+| Add forgetting/pruning logic     | Medium   | Medium     |
+| Create reflection generation     | Medium   | High       |
+| Implement memory consolidation   | Medium   | High       |
+| Add management dashboard         | Low      | Medium     |
 
 **Deliverables:**
+
 - Unused memories decay over time
 - Automatic pruning of stale data
 - Meta-summaries generated
@@ -832,13 +846,13 @@ src/
 
 **Goal:** Polish and optimization
 
-| Task | Priority | Complexity |
-|------|----------|------------|
-| Hybrid retrieval (RRF) | Medium | Medium |
-| Temporal queries ("last week") | Medium | High |
-| Conflict resolution | Medium | High |
-| Memory versioning | Low | Medium |
-| Export/import functionality | Low | Low |
+| Task                           | Priority | Complexity |
+| ------------------------------ | -------- | ---------- |
+| Hybrid retrieval (RRF)         | Medium   | Medium     |
+| Temporal queries ("last week") | Medium   | High       |
+| Conflict resolution            | Medium   | High       |
+| Memory versioning              | Low      | Medium     |
+| Export/import functionality    | Low      | Low        |
 
 ---
 
@@ -846,12 +860,12 @@ src/
 
 ### Projects to Study
 
-| Project | What to Learn | Link |
-|---------|---------------|------|
-| **Mem0** | Hybrid storage, graph + vector | [github.com/mem0ai/mem0](https://github.com/mem0ai/mem0) |
-| **Graphiti** | Temporal knowledge graphs | [github.com/getzep/graphiti](https://github.com/getzep/graphiti) |
-| **MemGPT/Letta** | Self-editing memory, tiered architecture | [docs.letta.com](https://docs.letta.com) |
-| **LangMem** | Memory SDK patterns | [langchain-ai.github.io/langmem](https://langchain-ai.github.io/langmem) |
+| Project          | What to Learn                            | Link                                                                     |
+| ---------------- | ---------------------------------------- | ------------------------------------------------------------------------ |
+| **Mem0**         | Hybrid storage, graph + vector           | [github.com/mem0ai/mem0](https://github.com/mem0ai/mem0)                 |
+| **Graphiti**     | Temporal knowledge graphs                | [github.com/getzep/graphiti](https://github.com/getzep/graphiti)         |
+| **MemGPT/Letta** | Self-editing memory, tiered architecture | [docs.letta.com](https://docs.letta.com)                                 |
+| **LangMem**      | Memory SDK patterns                      | [langchain-ai.github.io/langmem](https://langchain-ai.github.io/langmem) |
 
 ### Key Papers
 
@@ -883,4 +897,4 @@ Start with Phase 1 to get a working foundation, then iterate. The existing Conve
 
 ---
 
-*Last updated: January 2025*
+_Last updated: January 2025_

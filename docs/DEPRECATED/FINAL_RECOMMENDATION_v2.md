@@ -42,14 +42,14 @@ This revision addresses the following gaps from v1:
 
 ### Vercel AI SDK v6 Integration (v2.2)
 
-| Gap                                     | Resolution                                                       |
-| --------------------------------------- | ---------------------------------------------------------------- |
-| Direct Anthropic/OpenAI SDK usage       | Migrated to unified Vercel AI SDK v6                             |
-| No structured output for extraction     | Added `Output.object({ schema })` with Zod (Pattern 3)           |
-| Manual JSON parsing for LLM responses   | AI SDK handles structured output automatically                   |
-| Inconsistent embedding generation       | Unified `embed()` / `embedMany()` functions                      |
-| No streaming persistence pattern        | Added chunk buffering with Convex persistence (Pattern 11)       |
-| `generateObject` usage (deprecated)     | Migrated to `generateText` with `output` property (AI SDK v6)    |
+| Gap                                   | Resolution                                                    |
+| ------------------------------------- | ------------------------------------------------------------- |
+| Direct Anthropic/OpenAI SDK usage     | Migrated to unified Vercel AI SDK v6                          |
+| No structured output for extraction   | Added `Output.object({ schema })` with Zod (Pattern 3)        |
+| Manual JSON parsing for LLM responses | AI SDK handles structured output automatically                |
+| Inconsistent embedding generation     | Unified `embed()` / `embedMany()` functions                   |
+| No streaming persistence pattern      | Added chunk buffering with Convex persistence (Pattern 11)    |
+| `generateObject` usage (deprecated)   | Migrated to `generateText` with `output` property (AI SDK v6) |
 
 ---
 
@@ -616,10 +616,12 @@ import { generateText, Output } from 'ai'
 import { z } from 'zod'
 
 const schema = z.object({
-  entities: z.array(z.object({
-    name: z.string().describe('Entity name'),
-    type: z.string().describe('Entity type'),
-  })),
+  entities: z.array(
+    z.object({
+      name: z.string().describe('Entity name'),
+      type: z.string().describe('Entity type'),
+    }),
+  ),
   importance: z.number().min(0).max(1),
 })
 
@@ -694,14 +696,14 @@ output: Output.array({ element: MyItemSchema })
 
 ### Model Recommendations
 
-| Use Case              | Model                              | Notes                                   |
-| --------------------- | ---------------------------------- | --------------------------------------- |
-| Entity extraction     | `claude-3-5-haiku-latest`          | Fast, cost-effective for structured    |
-| Conflict resolution   | `claude-3-5-haiku-latest`          | Simple decisions, low latency          |
-| Chat responses        | `claude-sonnet-4-20250514`         | Balanced quality/speed                  |
-| Complex reasoning     | `claude-opus-4-20250514`           | When quality is paramount               |
-| Embeddings            | `text-embedding-3-small`           | 1536 dims, good cost/quality balance    |
-| High-dim embeddings   | `text-embedding-3-large`           | 3072 dims, better for complex queries   |
+| Use Case            | Model                      | Notes                                 |
+| ------------------- | -------------------------- | ------------------------------------- |
+| Entity extraction   | `claude-3-5-haiku-latest`  | Fast, cost-effective for structured   |
+| Conflict resolution | `claude-3-5-haiku-latest`  | Simple decisions, low latency         |
+| Chat responses      | `claude-sonnet-4-20250514` | Balanced quality/speed                |
+| Complex reasoning   | `claude-opus-4-20250514`   | When quality is paramount             |
+| Embeddings          | `text-embedding-3-small`   | 1536 dims, good cost/quality balance  |
+| High-dim embeddings | `text-embedding-3-large`   | 3072 dims, better for complex queries |
 
 ---
 
@@ -1102,11 +1104,7 @@ const RelationshipSchema = z.object({
     .string()
     .describe('The relationship type: prefers, works_at, knows, lives_in'),
   object: z.string().describe('The object of the relationship'),
-  confidence: z
-    .number()
-    .min(0)
-    .max(1)
-    .describe('Extraction confidence (0-1)'),
+  confidence: z.number().min(0).max(1).describe('Extraction confidence (0-1)'),
 })
 
 const ExtractionSchema = z.object({
@@ -1126,9 +1124,7 @@ const ExtractionSchema = z.object({
   importanceReason: z
     .string()
     .describe('Brief explanation of the importance score'),
-  summary: z
-    .string()
-    .describe('One sentence capturing the key information'),
+  summary: z.string().describe('One sentence capturing the key information'),
 })
 
 // ============================================
@@ -1350,7 +1346,11 @@ Analyze and decide the appropriate action.`,
 
   // Fallback if structured output fails
   if (!output) {
-    return { action: 'ADD' as const, reason: 'Default to ADD on parse failure', mergedContent: null }
+    return {
+      action: 'ADD' as const,
+      reason: 'Default to ADD on parse failure',
+      mergedContent: null,
+    }
   }
 
   return output
@@ -2753,16 +2753,16 @@ src/
 
 ### AI SDK Integration Differences (v2.2)
 
-| Aspect                    | v1 (Direct SDK)                  | v2.2 (Vercel AI SDK v6)                           |
-| ------------------------- | -------------------------------- | ------------------------------------------------- |
-| **LLM Provider**          | `@anthropic-ai/sdk` directly     | `@ai-sdk/anthropic` via unified API               |
-| **Embeddings**            | `openai.embeddings.create()`     | `embed()` / `embedMany()` from `ai`               |
-| **Structured output**     | Manual JSON parsing              | `Output.object({ schema })` with Zod              |
-| **Streaming**             | Not implemented                  | `streamText()` + chunk persistence                |
-| **Type safety**           | Manual types                     | Zod schemas with `.describe()` for LLM hints      |
-| **Error handling**        | Try/catch JSON parse             | AI SDK throws `AI_NoObjectGeneratedError`         |
-| **Provider switching**    | Rewrite all code                 | Change model string only                          |
-| **Function deprecation**  | N/A                              | `generateObject` → `generateText` + `output`      |
+| Aspect                   | v1 (Direct SDK)              | v2.2 (Vercel AI SDK v6)                      |
+| ------------------------ | ---------------------------- | -------------------------------------------- |
+| **LLM Provider**         | `@anthropic-ai/sdk` directly | `@ai-sdk/anthropic` via unified API          |
+| **Embeddings**           | `openai.embeddings.create()` | `embed()` / `embedMany()` from `ai`          |
+| **Structured output**    | Manual JSON parsing          | `Output.object({ schema })` with Zod         |
+| **Streaming**            | Not implemented              | `streamText()` + chunk persistence           |
+| **Type safety**          | Manual types                 | Zod schemas with `.describe()` for LLM hints |
+| **Error handling**       | Try/catch JSON parse         | AI SDK throws `AI_NoObjectGeneratedError`    |
+| **Provider switching**   | Rewrite all code             | Change model string only                     |
+| **Function deprecation** | N/A                          | `generateObject` → `generateText` + `output` |
 
 ---
 
@@ -2937,6 +2937,7 @@ const { embeddings } = await embedMany({
 ```
 
 **Sources:**
+
 - [AI SDK v6 Documentation](https://ai-sdk.dev/docs/introduction)
 - [AI SDK Structured Data](https://ai-sdk.dev/docs/ai-sdk-core/generating-structured-data)
 - [AI SDK Migration Guide](https://ai-sdk.dev/docs/migration-guides/migration-guide-6-0)
