@@ -23,7 +23,7 @@ bun run test
 
 ## Architecture
 
-This is a TanStack Start (React) application with Convex as the backend.
+This is a TanStack Start (React) application with Convex as the backend. This uses bun.sh for package management NOT npm.
 
 **Stack:**
 
