@@ -1,11 +1,15 @@
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import { TanStackDevtools } from '@tanstack/react-devtools'
+import { TanStackDevtools } from '@tanstack/react-devtools';
+// eslint-disable-next-line import/order
+import type { QueryClient } from "@tanstack/react-query";
+import { HeadContent, Scripts, createRootRouteWithContext } from '@tanstack/react-router';
+import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
+import appCss from '../styles.css?url';
 
-import appCss from '../styles.css?url'
 
-export const Route = createRootRoute({
-  head: () => ({
+export const Route = createRootRouteWithContext<{
+  queryClient: QueryClient;
+}>()({
+    head: () => ({
     meta: [
       {
         charSet: 'utf-8',
