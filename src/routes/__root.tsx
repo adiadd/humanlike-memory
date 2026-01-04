@@ -1,15 +1,36 @@
-import { TanStackDevtools } from '@tanstack/react-devtools';
-// eslint-disable-next-line import/order
-import type { QueryClient } from "@tanstack/react-query";
-import { HeadContent, Scripts, createRootRouteWithContext } from '@tanstack/react-router';
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
-import appCss from '../styles.css?url';
+import { TanStackDevtools } from '@tanstack/react-devtools'
+import {
+  HeadContent,
+  Outlet,
+  Scripts,
+  createRootRouteWithContext,
+} from '@tanstack/react-router'
+import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 
+import appCss from '../styles.css?url'
+import type { QueryClient } from '@tanstack/react-query'
+import { ModeToggle } from '@/components/mode-toggle'
+import { ThemeProvider } from '@/components/theme-provider'
+import { TooltipProvider } from '@/components/ui/tooltip'
+
+const themeScript = `
+  (function() {
+    const storageKey = 'vite-ui-theme';
+    const theme = localStorage.getItem(storageKey);
+    const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    if (theme === 'dark' || (theme === 'system' && systemDark) || (!theme && systemDark)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  })();
+`
 
 export const Route = createRootRouteWithContext<{
-  queryClient: QueryClient;
+  queryClient: QueryClient
 }>()({
-    head: () => ({
+  head: () => ({
     meta: [
       {
         charSet: 'utf-8',
@@ -19,7 +40,7 @@ export const Route = createRootRouteWithContext<{
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'TanStack Start Starter',
+        title: 'Human-like Memory for AI Agents',
       },
     ],
     links: [
@@ -28,26 +49,43 @@ export const Route = createRootRouteWithContext<{
         href: appCss,
       },
     ],
+    scripts: [
+      {
+        children: themeScript,
+      },
+    ],
   }),
 
+  component: RootComponent,
   shellComponent: RootDocument,
 })
 
+function RootComponent() {
+  return <Outlet />
+}
+
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
-      <body>
-        {children}
+      <body className="min-h-screen bg-background antialiased">
+        <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+          <TooltipProvider>
+            <div className="fixed top-4 right-4 z-50">
+              <ModeToggle />
+            </div>
+            {children}
+          </TooltipProvider>
+        </ThemeProvider>
         <TanStackDevtools
           config={{
             position: 'bottom-right',
           }}
           plugins={[
             {
-              name: 'Tanstack Router',
+              name: 'TanStack Router',
               render: <TanStackRouterDevtoolsPanel />,
             },
           ]}
