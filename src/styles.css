@@ -156,5 +156,5 @@
 }
 
 .dark [data-streamdown] code:not(pre code) {
-  background-color: oklch(1 1 1 / 10%);
+  background-color: oklch(1 0 0 / 10%);
 }

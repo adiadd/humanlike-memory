@@ -39,7 +39,7 @@ export const promoteFromSensory = internalMutation({
   args: { sensoryMemoryId: v.id('sensoryMemories') },
   handler: async (ctx, args) => {
     const sensory = await ctx.db.get(args.sensoryMemoryId)
-    if (!sensory || sensory.status !== 'pending') return
+    if (!sensory || sensory.status !== 'pending' || !sensory.threadId) return
 
     await ctx.db.patch(args.sensoryMemoryId, { status: 'processing' })
 
@@ -47,7 +47,7 @@ export const promoteFromSensory = internalMutation({
       sensoryMemoryId: args.sensoryMemoryId,
       content: sensory.content,
       userId: sensory.userId,
-      threadId: sensory.threadId!,
+      threadId: sensory.threadId,
     })
   },
 })

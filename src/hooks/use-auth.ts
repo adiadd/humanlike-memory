@@ -13,9 +13,12 @@ export function useRequireAuth() {
 
   React.useEffect(() => {
     const storedUserId = localStorage.getItem('userId')
-    if (storedUserId) {
+    // Validate that the stored value looks like a valid Convex ID before casting
+    if (storedUserId && /^[a-z0-9]{32}$/.test(storedUserId)) {
       setUserId(storedUserId as Id<'users'>)
     } else {
+      // Clear invalid stored value if present
+      if (storedUserId) localStorage.removeItem('userId')
       navigate({ to: '/' })
     }
   }, [navigate])
