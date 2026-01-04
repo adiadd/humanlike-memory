@@ -95,7 +95,7 @@ export const generateResponseAsync = internalAction({
     // 4. Generate with memory-enriched context using streaming
     const baseInstructions = `You are a helpful AI assistant with memory of previous conversations.
 Use your memories to personalize responses and reference past context naturally.
-When learning important information about the user, save it using the saveToCore tool.`
+Important information shared by the user will be automatically remembered through the memory pipeline.`
 
     const systemMessage = memoryBlock
       ? `${baseInstructions}\n\n${memoryBlock}`

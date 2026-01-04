@@ -4,7 +4,6 @@ import { v } from 'convex/values'
 import { internal } from './_generated/api'
 import { internalMutation, internalQuery, query } from './_generated/server'
 
-const TOPIC_SIMILARITY_THRESHOLD = 0.82
 const STM_EXPIRY_HOURS = 4
 
 // Query to get STM by ID (used by consolidation)
@@ -77,14 +76,16 @@ export const create = internalMutation({
     importance: v.float64(),
     userId: v.id('users'),
     threadId: v.string(),
+    existingTopicId: v.union(v.string(), v.null()),
   },
   handler: async (ctx, args) => {
-    // 1. Find or create topic based on embedding similarity
+    // 1. Use existing topic or create new one
     const topicId = await findOrCreateTopic(
       ctx,
       args.userId,
       args.embedding,
       args.entities,
+      args.existingTopicId,
     )
 
     // 2. Create STM entry
@@ -120,30 +121,22 @@ async function findOrCreateTopic(
   userId: string,
   embedding: Array<number>,
   entities: Array<{ name: string; type: string; salience: number }>,
+  existingTopicId: string | null,
 ) {
-  // Search for similar STM to find existing topic using vector search
-  const similar = await ctx.db
-    .query('shortTermMemories')
-    .withSearchIndex('embedding_idx', (q: any) =>
-      q.vectorSearch('embedding', embedding).eq('userId', userId),
-    )
-    .take(3)
-
-  for (const memory of similar) {
-    if (memory._score >= TOPIC_SIMILARITY_THRESHOLD && memory.topicId) {
-      // Update topic centroid
-      const topic = await ctx.db.get(memory.topicId)
-      if (topic) {
-        const newCentroid = topic.centroid.map(
-          (val: number, i: number) =>
-            (val * topic.memberCount + embedding[i]) / (topic.memberCount + 1),
-        )
-        await ctx.db.patch(topic._id, {
-          centroid: newCentroid,
-          memberCount: topic.memberCount + 1,
-        })
-      }
-      return memory.topicId
+  // If an existing topic was found via vector search in the action, use it
+  if (existingTopicId) {
+    const topic = await ctx.db.get(existingTopicId)
+    if (topic) {
+      // Update topic centroid with the new embedding
+      const newCentroid = topic.centroid.map(
+        (val: number, i: number) =>
+          (val * topic.memberCount + embedding[i]) / (topic.memberCount + 1),
+      )
+      await ctx.db.patch(topic._id, {
+        centroid: newCentroid,
+        memberCount: topic.memberCount + 1,
+      })
+      return existingTopicId
     }
   }
 

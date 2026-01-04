@@ -64,14 +64,16 @@ const searchMemories = createTool({
 })
 
 // Define the memory-aware agent
+// NOTE: saveToCore tool is intentionally NOT included - memories should flow through
+// the proper pipeline: Sensory → STM → LTM → Core (via reflection workflow)
 export const memoryAgent = new Agent(components.agent, {
   name: 'MemoryAgent',
   languageModel: anthropic('claude-haiku-4-5'),
   textEmbeddingModel: openai.embeddingModel('text-embedding-3-small'),
   instructions: `You are a helpful AI assistant with memory of previous conversations.
 Use your memories to personalize responses and reference past context naturally.
-When learning important information about the user, save it using the saveToCore tool.`,
-  tools: { saveToCore, searchMemories },
+Important information shared by the user will be automatically remembered through the memory pipeline.`,
+  tools: { searchMemories },
   // Allow multiple steps for tool calls to complete and generate final response
   maxSteps: 5,
 })

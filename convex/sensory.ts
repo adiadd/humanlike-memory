@@ -130,6 +130,21 @@ export const updateStatus = internalMutation({
   },
 })
 
+// Internal mutation for marking extraction as failed
+export const markExtractionFailed = internalMutation({
+  args: {
+    sensoryMemoryId: v.id('sensoryMemories'),
+    reason: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.sensoryMemoryId, {
+      status: 'discarded',
+      discardReason: `Extraction failed: ${args.reason}`,
+      processedAt: Date.now(),
+    })
+  },
+})
+
 // Ingest from thread (called by chat.ts after message)
 export const ingestFromThread = internalMutation({
   args: { threadId: v.string(), userId: v.id('users') },
