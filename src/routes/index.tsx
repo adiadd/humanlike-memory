@@ -58,14 +58,6 @@ function LandingPage() {
             <Brain className="size-6 text-primary" weight="duotone" />
             <span className="text-sm font-semibold">Human-Like Memory</span>
           </div>
-          <nav className="flex items-center gap-4">
-            <Button variant="ghost" size="sm">
-              <a href="#features">Features</a>
-            </Button>
-            <Button variant="ghost" size="sm">
-              <a href="#architecture">Architecture</a>
-            </Button>
-          </nav>
         </div>
       </header>
 
@@ -148,38 +140,6 @@ function LandingPage() {
               title="Reflection Engine"
               description="Detects patterns across memories and promotes stable facts to core memory."
             />
-          </div>
-        </div>
-      </section>
-
-      {/* Architecture Section */}
-      <section className="px-6 py-16">
-        <div className="mx-auto max-w-4xl text-center">
-          <h2 className="mb-4 text-2xl font-semibold">Built for Production</h2>
-          <p className="mb-8 text-muted-foreground">
-            Powered by TanStack Start, Convex, and the AI SDK with durable
-            workflows, cached embeddings, and rate limiting built-in.
-          </p>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="rounded-lg border bg-card p-4 text-left">
-              <div className="mb-2 text-xs font-medium text-muted-foreground">
-                Frontend
-              </div>
-              <div className="text-sm">TanStack Start + React 19</div>
-            </div>
-            <div className="rounded-lg border bg-card p-4 text-left">
-              <div className="mb-2 text-xs font-medium text-muted-foreground">
-                Backend
-              </div>
-              <div className="text-sm">Convex + AI SDK</div>
-            </div>
-            <div className="rounded-lg border bg-card p-4 text-left">
-              <div className="mb-2 text-xs font-medium text-muted-foreground">
-                Models
-              </div>
-              <div className="text-sm">Claude + OpenAI Embeddings</div>
-            </div>
           </div>
         </div>
       </section>

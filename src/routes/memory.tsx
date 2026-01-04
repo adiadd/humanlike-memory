@@ -217,7 +217,11 @@ function MemoryDashboard() {
                   {sensoryMemories === undefined ? (
                     <MemoryListSkeleton />
                   ) : sensoryMemories.length === 0 ? (
-                    <EmptyState message="No sensory memories yet. Start chatting to create some!" />
+                    <EmptyState
+                      message="No sensory memories yet"
+                      icon={<Eye className="mb-4 size-12 text-blue-500/30" />}
+                      hint="Send messages in the chat to populate the sensory buffer. Each message is scored for attention - meaningful content passes through while noise is filtered out."
+                    />
                   ) : (
                     <div className="space-y-3">
                       {sensoryMemories.map((memory) => (
@@ -281,7 +285,11 @@ function MemoryDashboard() {
                   {shortTermMemories === undefined ? (
                     <MemoryListSkeleton />
                   ) : shortTermMemories.length === 0 ? (
-                    <EmptyState message="No short-term memories. Messages need to pass attention filtering first." />
+                    <EmptyState
+                      message="No short-term memories"
+                      icon={<Clock className="mb-4 size-12 text-amber-500/30" />}
+                      hint="Messages that pass the attention filter (typically >30% attention score) are promoted here. Short-term memory groups related messages by topic and extracts entities."
+                    />
                   ) : (
                     <div className="space-y-3">
                       {shortTermMemories.map((memory) => (
@@ -350,7 +358,11 @@ function MemoryDashboard() {
                   {longTermMemories === undefined ? (
                     <MemoryListSkeleton />
                   ) : longTermMemories.length === 0 ? (
-                    <EmptyState message="No long-term memories yet. Important short-term memories get promoted here." />
+                    <EmptyState
+                      message="No long-term memories yet"
+                      icon={<Database className="mb-4 size-12 text-green-500/30" />}
+                      hint="Short-term memories that persist across conversations and show recurring patterns are consolidated here. Long-term memories are categorized as episodic (events) or semantic (facts)."
+                    />
                   ) : (
                     <div className="space-y-3">
                       {longTermMemories.map((memory) => (
@@ -430,7 +442,11 @@ function MemoryDashboard() {
                   {coreMemories === undefined ? (
                     <MemoryListSkeleton />
                   ) : coreMemories.length === 0 ? (
-                    <EmptyState message="No core memories yet. The reflection engine promotes stable patterns here." />
+                    <EmptyState
+                      message="No core memories yet"
+                      icon={<Sparkle className="mb-4 size-12 text-purple-500/30" />}
+                      hint="The reflection engine analyzes patterns across your conversations and promotes stable identity facts here. Core memories include your name, preferences, relationships, and beliefs."
+                    />
                   ) : (
                     <div className="space-y-3">
                       {coreMemories.map((memory) => (
@@ -566,11 +582,22 @@ function MemoryListSkeleton() {
   )
 }
 
-function EmptyState({ message }: { message: string }) {
+function EmptyState({
+  message,
+  icon,
+  hint,
+}: {
+  message: string
+  icon?: React.ReactNode
+  hint?: string
+}) {
   return (
-    <div className="flex h-[300px] flex-col items-center justify-center text-center">
-      <Brain className="mb-4 size-12 text-muted-foreground/30" />
-      <p className="text-sm text-muted-foreground">{message}</p>
+    <div className="flex h-[300px] flex-col items-center justify-center text-center px-4">
+      {icon || <Brain className="mb-4 size-12 text-muted-foreground/30" />}
+      <p className="text-sm text-muted-foreground mb-2">{message}</p>
+      {hint && (
+        <p className="text-xs text-muted-foreground/70 max-w-sm">{hint}</p>
+      )}
     </div>
   )
 }
