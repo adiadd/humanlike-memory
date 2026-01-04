@@ -53,19 +53,6 @@ import {
 } from '@/components/ui/tooltip'
 import { api } from '@/lib/convex'
 
-// Types for thread and core memory
-type Thread = {
-  _id: string
-  title?: string
-  status: 'active' | 'archived'
-}
-
-type CoreMemory = {
-  _id: string
-  content: string
-  category: string
-}
-
 export const Route = createFileRoute('/chat')({
   component: ChatPage,
 })
@@ -77,9 +64,10 @@ function ChatPage() {
     null,
   )
   const [message, setMessage] = React.useState('')
-  const [threadToDelete, setThreadToDelete] = React.useState<Thread | null>(
-    null,
-  )
+  const [threadToDelete, setThreadToDelete] = React.useState<{
+    _id: string
+    title?: string
+  } | null>(null)
 
   // Load userId from localStorage on mount
   React.useEffect(() => {
@@ -91,26 +79,23 @@ function ChatPage() {
     }
   }, [navigate])
 
-  // Queries
-  const threads = useQuery(api.threads.list, userId ? { userId } : 'skip') as
-    | Array<Thread>
-    | undefined
+  const threads = useQuery(api.threads.list, userId ? { userId } : 'skip')
   const memoryStats = useQuery(
     api.chat.getMemoryStats,
     userId ? { userId } : 'skip',
-  ) as { core?: number; total?: number } | undefined
+  )
   const coreMemories = useQuery(
     api.core.listActive,
     userId ? { userId } : 'skip',
-  ) as Array<CoreMemory> | undefined
+  )
   const sensoryMemories = useQuery(
     api.sensory.listRecent,
     userId ? { userId } : 'skip',
-  ) as Array<{ _id: string; status: string }> | undefined
+  )
   const shortTermMemories = useQuery(
     api.shortTerm.listActive,
     userId ? { userId } : 'skip',
-  ) as Array<{ _id: string }> | undefined
+  )
 
   // Mutations
   const archiveThread = useMutation(api.threads.archive)
@@ -438,7 +423,6 @@ function ChatPage() {
   )
 }
 
-// Separate component for chat area to use hooks properly
 function ChatArea({
   threadId,
   userId,
@@ -450,7 +434,7 @@ function ChatArea({
   userId: Id<'users'>
   message: string
   setMessage: (message: string) => void
-  coreMemories: Array<CoreMemory> | undefined
+  coreMemories: Array<{ _id: string; content: string; category: string }> | undefined
 }) {
   const messagesEndRef = React.useRef<HTMLDivElement>(null)
   const [showCoreMemories, setShowCoreMemories] = React.useState(true)
@@ -468,16 +452,11 @@ function ChatArea({
   )
 
   // Scroll to bottom when messages change - using useLayoutEffect for sync scroll
-  const prevMessagesRef = React.useRef(messages)
-  if (messages !== prevMessagesRef.current) {
-    prevMessagesRef.current = messages
-    // Schedule scroll after render
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, 0)
-  }
+  React.useLayoutEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
 
-  // Check if any message is currently streaming
+
   const isStreaming = messages.some((m) => m.status === 'streaming')
 
   const handleSendMessage = async () => {

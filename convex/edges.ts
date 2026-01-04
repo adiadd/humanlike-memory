@@ -1,21 +1,13 @@
-// convex/edges.ts
 import { v } from 'convex/values'
 
 import { internalMutation, mutation, query } from './_generated/server'
 
-/**
- * Clean up orphaned edges where source or target entity no longer has memories.
- * Called by the pruning workflow.
- */
 export const cleanupOrphaned = internalMutation({
   handler: async (ctx): Promise<{ deleted: number }> => {
     let deleted = 0
-
-    // Get a batch of edges to check
     const edges = await ctx.db.query('memoryEdges').take(500)
 
     for (const edge of edges) {
-      // Check if any memories reference the source entity
       const sourceMemories = await ctx.db
         .query('longTermMemories')
         .withIndex('by_entity', (q) =>
@@ -26,7 +18,6 @@ export const cleanupOrphaned = internalMutation({
         )
         .first()
 
-      // Check if any memories reference the target entity
       const targetMemories = await ctx.db
         .query('longTermMemories')
         .withIndex('by_entity', (q) =>
@@ -47,9 +38,6 @@ export const cleanupOrphaned = internalMutation({
   },
 })
 
-/**
- * Create or strengthen an edge between two entities
- */
 export const upsertEdge = mutation({
   args: {
     userId: v.id('users'),
@@ -99,9 +87,6 @@ export const upsertEdge = mutation({
   },
 })
 
-/**
- * Get edges connected to an entity by name
- */
 export const getConnected = query({
   args: {
     userId: v.id('users'),

@@ -1,38 +1,22 @@
-// convex/consolidation.ts
 import { v } from 'convex/values'
 
 import { internal } from './_generated/api'
 import { internalAction, internalMutation } from './_generated/server'
 import { memoryStats, workflowManager } from './components'
 
-// ============================================
-// WORKFLOW DEFINITIONS
-// Durable, multi-step memory consolidation
-// ============================================
-
-/**
- * Main consolidation workflow - runs every 15 minutes
- * Steps: cleanup expired STM -> apply decay -> promote to LTM
- *
- * NOTE: Workflow handlers receive (ctx, args) where ctx has step methods
- */
 export const consolidationWorkflow = workflowManager.define({
   args: {},
   handler: async (ctx): Promise<void> => {
-    // Step 1: Clean up expired short-term memories
     const cleanupResult = await ctx.runMutation(
       internal.consolidation.cleanupExpiredSTM,
       {},
     )
 
-    // Step 2 & 3: Run decay and promotion in parallel
-    // These don't depend on each other
     await Promise.all([
       ctx.runMutation(internal.consolidation.applyDecay, {}),
       ctx.runAction(internal.consolidation.promoteToLongTerm, {}),
     ])
 
-    // Step 4: Log consolidation run
     await ctx.runMutation(internal.consolidation.logRun, {
       runType: 'promotion',
       memoriesProcessed: cleanupResult.processed,
@@ -40,7 +24,6 @@ export const consolidationWorkflow = workflowManager.define({
       memoriesPruned: cleanupResult.pruned,
     })
   },
-  // Configure retry behavior at workflow level
   workpoolOptions: {
     retryActionsByDefault: true,
     defaultRetryBehavior: {
@@ -51,23 +34,14 @@ export const consolidationWorkflow = workflowManager.define({
   },
 })
 
-/**
- * Pruning workflow - runs weekly
- * More aggressive cleanup of low-importance memories
- */
 export const pruningWorkflow = workflowManager.define({
   args: {},
   handler: async (ctx): Promise<void> => {
-    // Step 1: Prune low-importance LTM
     const pruned = await ctx.runMutation(
       internal.consolidation.pruneMemories,
       {},
     )
-
-    // Step 2: Clean up orphaned edges
     await ctx.runMutation(internal.edges.cleanupOrphaned, {})
-
-    // Step 3: Log
     await ctx.runMutation(internal.consolidation.logRun, {
       runType: 'pruning',
       memoriesProcessed: pruned.processed,
@@ -76,10 +50,6 @@ export const pruningWorkflow = workflowManager.define({
     })
   },
 })
-
-// ============================================
-// WORKFLOW TRIGGERS (called by crons)
-// ============================================
 
 export const triggerConsolidation = internalMutation({
   handler: async (ctx) => {
@@ -96,11 +66,6 @@ export const triggerPruning = internalMutation({
     await workflowManager.start(ctx, internal.consolidation.pruningWorkflow, {})
   },
 })
-
-// ============================================
-// CONSOLIDATION MUTATIONS
-// Individual steps called by workflows
-// ============================================
 
 export const cleanupExpiredSTM = internalMutation({
   handler: async (
@@ -175,12 +140,6 @@ export const promoteToLongTerm = internalAction({
       })
       if (result?.action === 'created') {
         promoted++
-        // Update aggregate stats
-        await ctx.runMutation(internal.consolidation.updateMemoryStats, {
-          userId: stm.userId,
-          memoryType: 'semantic',
-          importance: stm.importance,
-        })
       }
     }
 
@@ -231,22 +190,8 @@ export const logRun = internalMutation({
       memoriesProcessed: args.memoriesProcessed,
       memoriesPromoted: args.memoriesPromoted,
       memoriesPruned: args.memoriesPruned,
-      duration: 0, // Workflow handles timing
+      duration: 0,
       createdAt: Date.now(),
     })
-  },
-})
-
-// Update aggregate for O(log n) memory statistics
-export const updateMemoryStats = internalMutation({
-  args: {
-    userId: v.id('users'),
-    memoryType: v.string(),
-    importance: v.float64(),
-  },
-  handler: async (_ctx, _args) => {
-    // This would be called when memories are created/updated
-    // The aggregate component tracks counts automatically
-    // See memoryStats in components.ts
   },
 })

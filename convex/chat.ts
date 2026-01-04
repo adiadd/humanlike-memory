@@ -119,13 +119,7 @@ Important information shared by the user will be automatically remembered throug
     // Consume the stream to ensure it completes
     await result.consumeStream()
 
-    // 5. Ingest into sensory memory (background)
-    await ctx.scheduler.runAfter(0, internal.sensory.ingestFromThread, {
-      threadId,
-      userId,
-    })
-
-    // Also directly ingest the user message
+    // Ingest user message into sensory memory
     await ctx.runMutation(api.sensory.ingestMessage, {
       content: prompt,
       userId,

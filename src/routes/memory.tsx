@@ -32,45 +32,6 @@ export const Route = createFileRoute('/memory')({
   component: MemoryDashboard,
 })
 
-// Types for memories (inferred from Convex schema)
-type SensoryMemory = {
-  _id: string
-  content: string
-  attentionScore: number
-  status: 'pending' | 'processing' | 'promoted' | 'discarded'
-  createdAt: number
-}
-
-type ShortTermMemory = {
-  _id: string
-  content: string
-  summary?: string
-  importance: number
-  expiresAt: number
-  entities: Array<{ name: string; type: string; salience: number }>
-  createdAt: number
-}
-
-type LongTermMemory = {
-  _id: string
-  content: string
-  summary: string
-  memoryType: 'episodic' | 'semantic'
-  currentImportance: number
-  stability: number
-  accessCount: number
-  createdAt: number
-}
-
-type CoreMemory = {
-  _id: string
-  content: string
-  category: string
-  confidence: number
-  evidenceCount: number
-  createdAt: number
-}
-
 function MemoryDashboard() {
   const navigate = useNavigate()
   const [userId, setUserId] = React.useState<Id<'users'> | null>(null)
@@ -85,33 +46,26 @@ function MemoryDashboard() {
     }
   }, [navigate])
 
-  // Queries for each memory layer
   const memoryStats = useQuery(
     api.chat.getMemoryStats,
     userId ? { userId } : 'skip',
-  ) as
-    | { core?: number; total?: number; semantic?: number; episodic?: number }
-    | undefined
-
+  )
   const sensoryMemories = useQuery(
     api.sensory.listRecent,
     userId ? { userId } : 'skip',
-  ) as Array<SensoryMemory> | undefined
-
+  )
   const shortTermMemories = useQuery(
     api.shortTerm.listActive,
     userId ? { userId } : 'skip',
-  ) as Array<ShortTermMemory> | undefined
-
+  )
   const longTermMemories = useQuery(
     api.longTerm.listActive,
     userId ? { userId } : 'skip',
-  ) as Array<LongTermMemory> | undefined
-
+  )
   const coreMemories = useQuery(
     api.core.listActive,
     userId ? { userId } : 'skip',
-  ) as Array<CoreMemory> | undefined
+  )
 
   if (!userId) {
     return (

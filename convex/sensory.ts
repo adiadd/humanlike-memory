@@ -130,7 +130,6 @@ export const updateStatus = internalMutation({
   },
 })
 
-// Internal mutation for marking extraction as failed
 export const markExtractionFailed = internalMutation({
   args: {
     sensoryMemoryId: v.id('sensoryMemories'),
@@ -145,35 +144,12 @@ export const markExtractionFailed = internalMutation({
   },
 })
 
-// Ingest from thread (called by chat.ts after message)
-export const ingestFromThread = internalMutation({
-  args: { threadId: v.string(), userId: v.id('users') },
-  handler: (_ctx, { threadId, userId }) => {
-    // For now, we'll skip the thread message ingestion
-    // since the agent component manages messages separately
-    // This is called to ensure any new messages are processed
-    // The actual ingestion happens when the user sends a message
-    // via the sendMessage action which already calls ingestMessage
-
-    // Note: In a production system, you might want to fetch messages
-    // from the agent component and process them here
-    // But for the MVP, we'll rely on the direct ingestion path
-
-    // Just log that we were called
-    console.log(
-      `ingestFromThread called for thread ${threadId}, user ${userId}`,
-    )
-  },
-})
-
-// Public query for listing recent sensory memories (for debugging/visualization)
 export const listRecent = query({
   args: { userId: v.id('users') },
-  handler: async (ctx, args) => {
-    return await ctx.db
+  handler: async (ctx, args) =>
+    ctx.db
       .query('sensoryMemories')
       .withIndex('by_user_status', (q) => q.eq('userId', args.userId))
       .order('desc')
-      .take(50)
-  },
+      .take(50),
 })

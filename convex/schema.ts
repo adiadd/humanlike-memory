@@ -3,11 +3,6 @@ import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
 
 export default defineSchema({
-  // ============================================
-  // USERS
-  // Threads & messages managed by Agent component
-  // ============================================
-
   users: defineTable({
     externalId: v.string(), // External auth ID (e.g., Clerk)
     name: v.optional(v.string()),
@@ -17,11 +12,6 @@ export default defineSchema({
   })
     .index('by_externalId', ['externalId'])
     .index('by_lastActive', ['lastActiveAt']),
-
-  // ============================================
-  // LAYER 1: SENSORY MEMORY
-  // Brief input buffer, filters noise before processing
-  // ============================================
 
   sensoryMemories: defineTable({
     content: v.string(),
@@ -54,11 +44,6 @@ export default defineSchema({
     .index('by_user_status', ['userId', 'status', 'createdAt'])
     .index('by_thread', ['threadId', 'createdAt'])
     .index('by_hash', ['userId', 'contentHash']),
-
-  // ============================================
-  // LAYER 2: SHORT-TERM MEMORY
-  // Active context buffer, grouped by topic
-  // ============================================
 
   shortTermMemories: defineTable({
     content: v.string(),
@@ -112,7 +97,6 @@ export default defineSchema({
       filterFields: ['userId'],
     }),
 
-  // Topic registry for clustering
   topics: defineTable({
     userId: v.id('users'),
     label: v.string(),
@@ -120,11 +104,6 @@ export default defineSchema({
     memberCount: v.number(),
     createdAt: v.number(),
   }).index('by_user', ['userId']),
-
-  // ============================================
-  // LAYER 3: LONG-TERM MEMORY
-  // Consolidated knowledge
-  // ============================================
 
   longTermMemories: defineTable({
     content: v.string(),
@@ -173,11 +152,6 @@ export default defineSchema({
       filterFields: ['userId', 'memoryType', 'isActive'],
     }),
 
-  // ============================================
-  // KNOWLEDGE GRAPH: EDGES
-  // Relationships between entities
-  // ============================================
-
   memoryEdges: defineTable({
     // Source entity
     sourceName: v.string(),
@@ -211,11 +185,6 @@ export default defineSchema({
       dimensions: 1536,
       filterFields: ['userId', 'relationType'],
     }),
-
-  // ============================================
-  // LAYER 5: CORE MEMORY
-  // Stable identity, always in context
-  // ============================================
 
   coreMemories: defineTable({
     content: v.string(),
@@ -251,10 +220,6 @@ export default defineSchema({
       dimensions: 1536,
       filterFields: ['userId', 'category'],
     }),
-
-  // ============================================
-  // LAYER 4: MEMORY MANAGEMENT LOGS
-  // ============================================
 
   consolidationLogs: defineTable({
     userId: v.optional(v.id('users')),
