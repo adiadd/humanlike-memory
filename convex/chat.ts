@@ -1,4 +1,5 @@
 // convex/chat.ts
+import { stepCountIs } from 'ai'
 import { listUIMessages, syncStreams, vStreamArgs } from '@convex-dev/agent'
 import { paginationOptsValidator } from 'convex/server'
 import { v } from 'convex/values'
@@ -107,7 +108,7 @@ Important information shared by the user will be automatically remembered throug
       ctx,
       { threadId, userId },
       // Pass system to override agent instructions with memory context
-      { promptMessageId, system: systemMessage } as any,
+      { promptMessageId, system: systemMessage, stopWhen: stepCountIs(5) } as any,
       {
         saveStreamDeltas: {
           throttleMs: 50, // Update frequently for smooth streaming

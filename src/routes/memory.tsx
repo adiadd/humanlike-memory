@@ -2,13 +2,13 @@ import * as React from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import {
-  Brain,
-  CaretLeft,
-  Clock,
-  Database,
-  Eye,
-  Lightning,
-  Sparkle,
+  BrainIcon,
+  CaretLeftIcon,
+  ClockIcon,
+  DatabaseIcon,
+  EyeIcon,
+  LightningIcon,
+  SparkleIcon,
 } from '@phosphor-icons/react'
 
 import type { Id } from '@/lib/convex'
@@ -132,12 +132,12 @@ function MemoryDashboard() {
               size="sm"
               onClick={() => navigate({ to: '/chat' })}
             >
-              <CaretLeft className="size-4" />
+              <CaretLeftIcon className="size-4" />
               Back to Chat
             </Button>
             <Separator orientation="vertical" className="h-6" />
             <div className="flex items-center gap-2">
-              <Brain className="size-5 text-primary" weight="duotone" />
+              <BrainIcon className="size-5 text-primary" weight="duotone" />
               <span className="font-semibold">Memory Dashboard</span>
             </div>
           </div>
@@ -149,28 +149,28 @@ function MemoryDashboard() {
         {/* Stats Overview */}
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
-            icon={<Eye weight="duotone" />}
+            icon={<EyeIcon weight="duotone" />}
             title="Sensory Buffer"
             value={sensoryMemories?.length ?? 0}
             description="Recent inputs"
             color="blue"
           />
           <StatCard
-            icon={<Clock weight="duotone" />}
+            icon={<ClockIcon weight="duotone" />}
             title="Short-Term"
             value={shortTermMemories?.length ?? 0}
             description="Active context"
             color="amber"
           />
           <StatCard
-            icon={<Database weight="duotone" />}
+            icon={<DatabaseIcon weight="duotone" />}
             title="Long-Term"
             value={memoryStats?.total ?? 0}
             description="Consolidated"
             color="green"
           />
           <StatCard
-            icon={<Sparkle weight="duotone" />}
+            icon={<SparkleIcon weight="duotone" />}
             title="Core Memory"
             value={memoryStats?.core ?? 0}
             description="Identity facts"
@@ -182,19 +182,19 @@ function MemoryDashboard() {
         <Tabs defaultValue="sensory" className="space-y-4">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="sensory" className="text-xs">
-              <Eye className="mr-1.5 size-3" />
+              <EyeIcon className="mr-1.5 size-3" />
               Sensory
             </TabsTrigger>
             <TabsTrigger value="short-term" className="text-xs">
-              <Clock className="mr-1.5 size-3" />
+              <ClockIcon className="mr-1.5 size-3" />
               Short-Term
             </TabsTrigger>
             <TabsTrigger value="long-term" className="text-xs">
-              <Database className="mr-1.5 size-3" />
+              <DatabaseIcon className="mr-1.5 size-3" />
               Long-Term
             </TabsTrigger>
             <TabsTrigger value="core" className="text-xs">
-              <Sparkle className="mr-1.5 size-3" />
+              <SparkleIcon className="mr-1.5 size-3" />
               Core
             </TabsTrigger>
           </TabsList>
@@ -204,7 +204,7 @@ function MemoryDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <Eye className="size-4 text-blue-500" weight="duotone" />
+                  <EyeIcon className="size-4 text-blue-500" weight="duotone" />
                   Sensory Memory
                 </CardTitle>
                 <CardDescription>
@@ -219,7 +219,7 @@ function MemoryDashboard() {
                   ) : sensoryMemories.length === 0 ? (
                     <EmptyState
                       message="No sensory memories yet"
-                      icon={<Eye className="mb-4 size-12 text-blue-500/30" />}
+                      icon={<EyeIcon className="mb-4 size-12 text-blue-500/30" />}
                       hint="Send messages in the chat to populate the sensory buffer. Each message is scored for attention - meaningful content passes through while noise is filtered out."
                     />
                   ) : (
@@ -246,7 +246,7 @@ function MemoryDashboard() {
                           </div>
                           <div className="flex items-center gap-4 text-xs text-muted-foreground">
                             <div className="flex items-center gap-1">
-                              <Lightning className="size-3" />
+                              <LightningIcon className="size-3" />
                               <span>
                                 Attention:{' '}
                                 {(memory.attentionScore * 100).toFixed(0)}%
@@ -272,7 +272,7 @@ function MemoryDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <Clock className="size-4 text-amber-500" weight="duotone" />
+                  <ClockIcon className="size-4 text-amber-500" weight="duotone" />
                   Short-Term Memory
                 </CardTitle>
                 <CardDescription>
@@ -288,7 +288,7 @@ function MemoryDashboard() {
                     <EmptyState
                       message="No short-term memories"
                       icon={
-                        <Clock className="mb-4 size-12 text-amber-500/30" />
+                        <ClockIcon className="mb-4 size-12 text-amber-500/30" />
                       }
                       hint="Messages that pass the attention filter (typically >30% attention score) are promoted here. Short-term memory groups related messages by topic and extracts entities."
                     />
@@ -344,7 +344,7 @@ function MemoryDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <Database
+                  <DatabaseIcon
                     className="size-4 text-green-500"
                     weight="duotone"
                   />
@@ -363,7 +363,7 @@ function MemoryDashboard() {
                     <EmptyState
                       message="No long-term memories yet"
                       icon={
-                        <Database className="mb-4 size-12 text-green-500/30" />
+                        <DatabaseIcon className="mb-4 size-12 text-green-500/30" />
                       }
                       hint="Short-term memories that persist across conversations and show recurring patterns are consolidated here. Long-term memories are categorized as episodic (events) or semantic (facts)."
                     />
@@ -431,7 +431,7 @@ function MemoryDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <Sparkle
+                  <SparkleIcon
                     className="size-4 text-purple-500"
                     weight="duotone"
                   />
@@ -449,7 +449,7 @@ function MemoryDashboard() {
                     <EmptyState
                       message="No core memories yet"
                       icon={
-                        <Sparkle className="mb-4 size-12 text-purple-500/30" />
+                        <SparkleIcon className="mb-4 size-12 text-purple-500/30" />
                       }
                       hint="The reflection engine analyzes patterns across your conversations and promotes stable identity facts here. Core memories include your name, preferences, relationships, and beliefs."
                     />
@@ -505,24 +505,24 @@ function MemoryDashboard() {
             <CardContent>
               <div className="flex flex-col items-center gap-2 text-xs sm:flex-row sm:justify-center sm:gap-4">
                 <div className="flex items-center gap-2 rounded-lg bg-blue-500/10 px-3 py-2 text-blue-700 dark:text-blue-300">
-                  <Eye className="size-4" />
+                  <EyeIcon className="size-4" />
                   <span>Sensory</span>
                 </div>
                 <span className="text-muted-foreground">
                   → attention filter →
                 </span>
                 <div className="flex items-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-amber-700 dark:text-amber-300">
-                  <Clock className="size-4" />
+                  <ClockIcon className="size-4" />
                   <span>Short-Term</span>
                 </div>
                 <span className="text-muted-foreground">→ consolidation →</span>
                 <div className="flex items-center gap-2 rounded-lg bg-green-500/10 px-3 py-2 text-green-700 dark:text-green-300">
-                  <Database className="size-4" />
+                  <DatabaseIcon className="size-4" />
                   <span>Long-Term</span>
                 </div>
                 <span className="text-muted-foreground">→ reflection →</span>
                 <div className="flex items-center gap-2 rounded-lg bg-purple-500/10 px-3 py-2 text-purple-700 dark:text-purple-300">
-                  <Sparkle className="size-4" />
+                  <SparkleIcon className="size-4" />
                   <span>Core</span>
                 </div>
               </div>
@@ -599,7 +599,7 @@ function EmptyState({
 }) {
   return (
     <div className="flex h-[300px] flex-col items-center justify-center text-center px-4">
-      {icon || <Brain className="mb-4 size-12 text-muted-foreground/30" />}
+      {icon || <BrainIcon className="mb-4 size-12 text-muted-foreground/30" />}
       <p className="text-sm text-muted-foreground mb-2">{message}</p>
       {hint && (
         <p className="text-xs text-muted-foreground/70 max-w-sm">{hint}</p>

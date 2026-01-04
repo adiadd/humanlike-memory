@@ -4,18 +4,18 @@ import {
   useUIMessages,
 } from '@convex-dev/agent/react'
 import {
-  Brain,
-  CaretDown,
-  CaretLeft,
-  CaretUp,
-  ChartBar,
-  Lightning,
-  PaperPlaneTilt,
-  Plus,
-  Sparkle,
-  Spinner,
-  Trash,
-  User,
+  BrainIcon,
+  CaretDownIcon,
+  CaretLeftIcon,
+  CaretUpIcon,
+  ChartBarIcon,
+  LightningIcon,
+  PaperPlaneTiltIcon,
+  PlusIcon,
+  SparkleIcon,
+  SpinnerIcon,
+  TrashIcon,
+  UserIcon
 } from '@phosphor-icons/react'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useAction, useMutation, useQuery } from 'convex/react'
@@ -156,7 +156,7 @@ function ChatPage() {
   if (!userId) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <Spinner className="size-6 animate-spin" />
+        <SpinnerIcon className="size-6 animate-spin" />
       </div>
     )
   }
@@ -168,11 +168,11 @@ function ChatPage() {
         {/* Header */}
         <div className="flex items-center justify-between border-b p-4">
           <div className="flex items-center gap-2">
-            <Brain className="size-5 text-primary" weight="duotone" />
+            <BrainIcon className="size-5 text-primary" weight="duotone" />
             <span className="text-sm font-semibold">Human-like Memory</span>
           </div>
           <Button variant="ghost" size="icon-xs" onClick={handleNewThread}>
-            <Plus className="size-4" />
+            <PlusIcon className="size-4" />
           </Button>
         </div>
 
@@ -217,7 +217,7 @@ function ChatPage() {
                     className="mr-1 rounded p-1 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
                     aria-label="Delete conversation"
                   >
-                    <Trash className="size-3.5" />
+                    <TrashIcon className="size-3.5" />
                   </button>
                 </div>
               ))
@@ -239,7 +239,7 @@ function ChatPage() {
             {/* Sensory Layer */}
             <div className="flex items-center gap-2">
               <div className="flex size-6 items-center justify-center rounded bg-blue-500/10 text-blue-600">
-                <Lightning className="size-3" weight="fill" />
+                <LightningIcon className="size-3" weight="fill" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
@@ -262,7 +262,7 @@ function ChatPage() {
             {/* Short-term Layer */}
             <div className="flex items-center gap-2">
               <div className="flex size-6 items-center justify-center rounded bg-amber-500/10 text-amber-600">
-                <Brain className="size-3" weight="duotone" />
+                <BrainIcon className="size-3" weight="duotone" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
@@ -285,7 +285,7 @@ function ChatPage() {
             {/* Long-term Layer */}
             <div className="flex items-center gap-2">
               <div className="flex size-6 items-center justify-center rounded bg-green-500/10 text-green-600">
-                <ChartBar className="size-3" weight="fill" />
+                <ChartBarIcon className="size-3" weight="fill" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
@@ -306,7 +306,7 @@ function ChatPage() {
             {/* Core Layer */}
             <div className="flex items-center gap-2">
               <div className="flex size-6 items-center justify-center rounded bg-primary/10 text-primary">
-                <Sparkle className="size-3" weight="fill" />
+                <SparkleIcon className="size-3" weight="fill" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
@@ -329,7 +329,7 @@ function ChatPage() {
             to="/memory"
             className="mt-4 flex w-full items-center justify-center gap-2 rounded-md border bg-background px-3 py-2 text-xs font-medium hover:bg-muted"
           >
-            <ChartBar className="size-4" />
+            <ChartBarIcon className="size-4" />
             Memory Dashboard
           </Link>
         </div>
@@ -341,7 +341,7 @@ function ChatPage() {
             className="h-[44px] w-full justify-start gap-2 px-3"
             onClick={handleLogout}
           >
-            <CaretLeft className="size-4" />
+            <CaretLeftIcon className="size-4" />
             Back to Home
           </Button>
         </div>
@@ -360,7 +360,7 @@ function ChatPage() {
         ) : (
           /* No Thread Selected */
           <div className="flex flex-1 flex-col items-center justify-center">
-            <Brain className="mb-4 size-12 text-muted-foreground" />
+            <BrainIcon className="mb-4 size-12 text-muted-foreground" />
             <h2 className="mb-2 text-lg font-medium">
               Welcome to Human-like Memory
             </h2>
@@ -368,7 +368,7 @@ function ChatPage() {
               Select a conversation or start a new one
             </p>
             <Button onClick={handleNewThread}>
-              <Plus className="size-4" />
+              <PlusIcon className="size-4" />
               New Conversation
             </Button>
 
@@ -377,7 +377,7 @@ function ChatPage() {
               <Card className="mt-8 w-full max-w-md">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-sm">
-                    <Sparkle className="size-4 text-primary" weight="fill" />
+                    <SparkleIcon className="size-4 text-primary" weight="fill" />
                     What I Know About You
                   </CardTitle>
                   <CardDescription>
@@ -414,7 +414,7 @@ function ChatPage() {
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
             <AlertDialogMedia className="bg-destructive/10">
-              <Trash className="text-destructive" />
+              <TrashIcon className="text-destructive" />
             </AlertDialogMedia>
             <AlertDialogTitle>Delete conversation?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -508,15 +508,15 @@ function ChatArea({
             onClick={() => setShowCoreMemories(!showCoreMemories)}
             className="flex w-full items-center gap-2 px-4 py-2 text-xs hover:bg-muted/50"
           >
-            <Sparkle className="size-3 text-primary" weight="fill" />
+            <SparkleIcon className="size-3 text-primary" weight="fill" />
             <span className="font-medium">
               Active Context: {coreMemories.length} core memories shaping this
               conversation
             </span>
             {showCoreMemories ? (
-              <CaretUp className="size-3 text-muted-foreground" />
+              <CaretUpIcon className="size-3 text-muted-foreground" />
             ) : (
-              <CaretDown className="size-3 text-muted-foreground" />
+              <CaretDownIcon className="size-3 text-muted-foreground" />
             )}
           </button>
           {showCoreMemories && (
@@ -551,7 +551,7 @@ function ChatArea({
             </div>
           ) : messages.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center py-16 text-center">
-              <Sparkle className="mb-4 size-8 text-muted-foreground" />
+              <SparkleIcon className="mb-4 size-8 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
                 Start the conversation by sending a message.
               </p>
@@ -587,9 +587,9 @@ function ChatArea({
             className="h-auto w-auto min-w-[44px]"
           >
             {isStreaming ? (
-              <Spinner className="size-4 animate-spin" />
+              <SpinnerIcon className="size-4 animate-spin" />
             ) : (
-              <PaperPlaneTilt className="size-4" />
+              <PaperPlaneTiltIcon className="size-4" />
             )}
           </Button>
         </div>
@@ -615,9 +615,9 @@ function Message({ message }: { message: UIMessage }) {
         }`}
       >
         {isUser ? (
-          <User className="size-4" weight="bold" />
+          <UserIcon className="size-4" weight="bold" />
         ) : (
-          <Brain className="size-4" weight="duotone" />
+          <BrainIcon className="size-4" weight="duotone" />
         )}
       </div>
 
@@ -653,7 +653,7 @@ function Message({ message }: { message: UIMessage }) {
         {!isUser && message.status === 'success' && (
           <Tooltip>
             <TooltipTrigger className="flex items-center gap-1 text-[10px] text-muted-foreground">
-              <Sparkle className="size-2.5" weight="fill" />
+              <SparkleIcon className="size-2.5" weight="fill" />
               <span>Memory-informed response</span>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="text-xs">

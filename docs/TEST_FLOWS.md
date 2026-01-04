@@ -101,6 +101,7 @@ bun run dev
 - Personal info patterns ("I'm", "I prefer"): +25%
 - Named entities (Bangalore, TypeScript): +15%
 - Length >= 50 chars: +15%
+- Temporal references ("always", "never", etc.): +10% (if present)
 - **Total: ~95%**
 
 ---
@@ -145,10 +146,10 @@ bun run dev
 **Expected Results:**
 
 - First message: Creates new sensory memory with status `processing`
-- Second message: Either not shown separately OR marked as duplicate
+- Second message: Returns `{ status: 'duplicate', id: <existing_id> }` - no new record created
 - Sensory count should only increase by 1 (not 2)
 
-**Note:** Duplicate detection uses content hashing. Messages with identical content within the same hour from the same user are deduplicated.
+**Note:** Duplicate detection uses content hashing. Messages with identical content within the same hour from the same user are deduplicated at ingestion time.
 
 ---
 
@@ -287,6 +288,8 @@ Where `decayRate = 0.01 / stability`
 ### Flow 10: Memory Pruning
 
 **Purpose:** Validate that low-importance memories are pruned weekly.
+
+**Schedule:** Weekly (Sunday 4 AM UTC)
 
 **Pruning Threshold:** `currentImportance < 0.1`
 
@@ -525,7 +528,7 @@ Here's everything I know about you:
 - [ ] High-attention messages pass threshold (>= 30%)
 - [ ] Low-attention messages are discarded (< 30%)
 - [ ] Duplicates detected within 1 hour
-- [ ] Attention scoring includes personal info (+25%), entities (+15%), length (+15%)
+- [ ] Attention scoring includes personal info (+25%), entities (+15%), length (+15%), temporal (+10%)
 - [ ] Failed extractions retry with backoff and eventually mark as discarded
 
 ### Short-Term Memory
@@ -589,5 +592,5 @@ After running all flows with proper cron execution:
 
 6. **Attention Score Testing:** Use the formula to predict scores:
    ```
-   base (40%) + personal_info (25%) + entities (15%) + length>=50 (15%) - low_value (50%)
+   base (40%) + personal_info (25%) + entities (15%) + temporal (10%) + length>=50 (15%) - length<20 (30%) - low_value (50%)
    ```

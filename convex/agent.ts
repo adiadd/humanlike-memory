@@ -42,6 +42,4 @@ export const memoryAgent = new Agent(components.agent, {
 Use your memories to personalize responses and reference past context naturally.
 Important information shared by the user will be automatically remembered through the memory pipeline.`,
   tools: { searchMemories },
-  // Allow multiple steps for tool calls to complete and generate final response
-  maxSteps: 5,
 })

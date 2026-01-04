@@ -1,9 +1,9 @@
 import {
-  Brain,
-  ChatCircle,
-  Database,
-  Lightning,
-  Sparkle,
+  BrainIcon,
+  ChatCircleIcon,
+  DatabaseIcon,
+  LightningIcon,
+  SparkleIcon,
 } from '@phosphor-icons/react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMutation } from 'convex/react'
@@ -55,7 +55,7 @@ function LandingPage() {
       <header className="border-b px-6 py-4">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <div className="flex items-center gap-2">
-            <Brain className="size-6 text-primary" weight="duotone" />
+            <BrainIcon className="size-6 text-primary" weight="duotone" />
             <span className="text-sm font-semibold">Human-like Memory</span>
           </div>
         </div>
@@ -65,7 +65,7 @@ function LandingPage() {
       <section className="flex flex-1 flex-col items-center justify-center px-6 py-16">
         <div className="mx-auto max-w-3xl text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs">
-            <Sparkle className="size-3 text-primary" weight="fill" />
+            <SparkleIcon className="size-3 text-primary" weight="fill" />
             <span className="text-muted-foreground">
               Memory is cognition, not storage
             </span>
@@ -111,32 +111,32 @@ function LandingPage() {
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <FeatureCard
-              icon={<Lightning weight="duotone" />}
+              icon={<LightningIcon weight="duotone" />}
               title="Sensory Memory"
               description="Filters noise using attention scoring. Only meaningful signals enter the memory system."
             />
             <FeatureCard
-              icon={<ChatCircle weight="duotone" />}
+              icon={<ChatCircleIcon weight="duotone" />}
               title="Short-Term Memory"
               description="Active working memory that groups messages by topic and tracks conversation context."
             />
             <FeatureCard
-              icon={<Database weight="duotone" />}
+              icon={<DatabaseIcon weight="duotone" />}
               title="Long-Term Memory"
               description="Consolidated knowledge organized by entity, topic, and relationship with deduplication."
             />
             <FeatureCard
-              icon={<Brain weight="duotone" />}
+              icon={<BrainIcon weight="duotone" />}
               title="Memory Managers"
               description="Background processes that promote, decay, and prune memories during 'sleep cycles'."
             />
             <FeatureCard
-              icon={<Sparkle weight="duotone" />}
+              icon={<SparkleIcon weight="duotone" />}
               title="Core Memory"
               description="Stable identity facts - personality, preferences, and relationships that shape all responses."
             />
             <FeatureCard
-              icon={<Lightning weight="duotone" />}
+              icon={<LightningIcon weight="duotone" />}
               title="Reflection Engine"
               description="Detects patterns across memories and promotes stable facts to core memory."
             />
