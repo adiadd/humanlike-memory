@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { svgBehavior, svgSize } from '@/components/ui/styles'
 
 function InputGroup({ className, ...props }: React.ComponentProps<'div'>) {
   return (
@@ -24,7 +25,7 @@ function InputGroup({ className, ...props }: React.ComponentProps<'div'>) {
 }
 
 const inputGroupAddonVariants = cva(
-  "text-muted-foreground h-auto gap-2 py-1.5 text-xs font-medium group-data-[disabled=true]/input-group:opacity-50 [&>kbd]:rounded-none [&>svg:not([class*='size-'])]:size-4 flex cursor-text items-center justify-center select-none",
+  `text-muted-foreground h-auto gap-2 py-1.5 text-xs font-medium group-data-[disabled=true]/input-group:opacity-50 [&>kbd]:rounded-none ${svgSize} flex cursor-text items-center justify-center select-none`,
   {
     variants: {
       align: {
@@ -49,18 +50,34 @@ function InputGroupAddon({
   align = 'inline-start',
   ...props
 }: React.ComponentProps<'div'> & VariantProps<typeof inputGroupAddonVariants>) {
+  const addonRef = React.useRef<HTMLDivElement>(null)
+  const inputRef = React.useRef<HTMLInputElement | null>(null)
+
+  React.useEffect(() => {
+    if (addonRef.current) {
+      inputRef.current =
+        addonRef.current.parentElement?.querySelector('input') ?? null
+    }
+  }, [])
+
+  const handleClick = React.useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if ((e.target as HTMLElement).closest('button')) {
+        return
+      }
+      inputRef.current?.focus()
+    },
+    [],
+  )
+
   return (
     <div
+      ref={addonRef}
       role="group"
       data-slot="input-group-addon"
       data-align={align}
       className={cn(inputGroupAddonVariants({ align }), className)}
-      onClick={(e) => {
-        if ((e.target as HTMLElement).closest('button')) {
-          return
-        }
-        e.currentTarget.parentElement?.querySelector('input')?.focus()
-      }}
+      onClick={handleClick}
       {...props}
     />
   )
@@ -108,7 +125,9 @@ function InputGroupText({ className, ...props }: React.ComponentProps<'span'>) {
   return (
     <span
       className={cn(
-        "text-muted-foreground gap-2 text-xs [&_svg:not([class*='size-'])]:size-4 flex items-center [&_svg]:pointer-events-none",
+        svgSize,
+        svgBehavior,
+        'text-muted-foreground gap-2 text-xs flex items-center',
         className,
       )}
       {...props}

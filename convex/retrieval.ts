@@ -1,24 +1,68 @@
-// convex/retrieval.ts
 import { v } from 'convex/values'
 
 import { internal } from './_generated/api'
 import { internalAction, internalQuery, query } from './_generated/server'
+import { CHARS_PER_TOKEN, CONTEXT_BUDGET } from './config'
+import type { MemoryContext } from './types'
 
-const CONTEXT_BUDGET = {
-  core: 400,
-  longTerm: 1200,
-  shortTerm: 400,
+// Helper: Fit memories within a token budget
+// Returns the items that fit and total tokens used
+function fitMemoriesWithinBudget<T>(
+  memories: Array<T>,
+  budget: number,
+  getContent: (item: T) => string,
+): { items: Array<T>; tokensUsed: number } {
+  const items: Array<T> = []
+  let tokensUsed = 0
+
+  for (const memory of memories) {
+    const content = getContent(memory)
+    const tokens = Math.ceil(content.length / CHARS_PER_TOKEN)
+    if (tokensUsed + tokens <= budget) {
+      items.push(memory)
+      tokensUsed += tokens
+    }
+  }
+
+  return { items, tokensUsed }
 }
-const CHARS_PER_TOKEN = 4
 
-interface MemoryContext {
-  core: Array<{ content: string; category: string }>
-  longTerm: Array<{ content: string; type: string; importance: number }>
-  shortTerm: Array<{ content: string; importance: number }>
-  totalTokens: number
-}
+// Helper query to get core, long-term, and short-term memories (no vector search)
+export const getMemoriesWithoutVector = internalQuery({
+  args: {
+    userId: v.id('users'),
+    threadId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // 1. Get core memories
+    const coreMemories = await ctx.db
+      .query('coreMemories')
+      .withIndex('by_user', (q) =>
+        q.eq('userId', args.userId).eq('isActive', true),
+      )
+      .take(10)
 
-// Helper query to get core and short-term memories (no vector search needed)
+    // 2. Get recent long-term memories by recency (no vector search)
+    const ltmResults = await ctx.db
+      .query('longTermMemories')
+      .withIndex('by_user', (q) =>
+        q.eq('userId', args.userId).eq('isActive', true),
+      )
+      .order('desc')
+      .take(10)
+
+    // 3. Get recent short-term memories from thread
+    const stmResults = await ctx.db
+      .query('shortTermMemories')
+      .withIndex('by_thread', (q) => q.eq('threadId', args.threadId))
+      .order('desc')
+      .take(10)
+
+    return { coreMemories, ltmResults, stmResults }
+  },
+})
+
+// Helper query to get core and short-term memories (for use with vector search)
 export const getCoreAndShortTerm = internalQuery({
   args: {
     userId: v.id('users'),
@@ -61,7 +105,64 @@ export const getLongTermByIds = internalQuery({
   },
 })
 
-// Main context assembly action (uses vector search)
+// Helper: Build MemoryContext from raw memories
+function buildMemoryContext(
+  coreMemories: Array<{ content: string; category: string }>,
+  ltmDocs: Array<{
+    summary: string
+    memoryType: string
+    currentImportance: number
+  }>,
+  stmResults: Array<{ summary?: string; content: string; importance: number }>,
+): MemoryContext {
+  const context: MemoryContext = {
+    core: [],
+    longTerm: [],
+    shortTerm: [],
+    totalTokens: 0,
+  }
+
+  // Process core memories
+  const coreResult = fitMemoriesWithinBudget(
+    coreMemories,
+    CONTEXT_BUDGET.core,
+    (c) => c.content,
+  )
+  context.core = coreResult.items.map((c) => ({
+    content: c.content,
+    category: c.category,
+  }))
+  context.totalTokens += coreResult.tokensUsed
+
+  // Process long-term memories
+  const ltmResult = fitMemoriesWithinBudget(
+    ltmDocs,
+    CONTEXT_BUDGET.longTerm,
+    (m) => m.summary,
+  )
+  context.longTerm = ltmResult.items.map((m) => ({
+    content: m.summary,
+    type: m.memoryType,
+    importance: m.currentImportance,
+  }))
+  context.totalTokens += ltmResult.tokensUsed
+
+  // Process short-term memories
+  const stmResult = fitMemoriesWithinBudget(
+    stmResults,
+    CONTEXT_BUDGET.shortTerm,
+    (m) => m.summary || m.content,
+  )
+  context.shortTerm = stmResult.items.map((m) => ({
+    content: m.summary || m.content,
+    importance: m.importance,
+  }))
+  context.totalTokens += stmResult.tokensUsed
+
+  return context
+}
+
+// Main context assembly action (uses vector search for LTM)
 export const assembleContext = internalAction({
   args: {
     userId: v.id('users'),
@@ -69,32 +170,11 @@ export const assembleContext = internalAction({
     queryEmbedding: v.array(v.float64()),
   },
   handler: async (ctx, args): Promise<MemoryContext> => {
-    const context: MemoryContext = {
-      core: [],
-      longTerm: [],
-      shortTerm: [],
-      totalTokens: 0,
-    }
-
     // 1. Get core and STM from query
     const { coreMemories, stmResults } = await ctx.runQuery(
       internal.retrieval.getCoreAndShortTerm,
       { userId: args.userId, threadId: args.threadId },
     )
-
-    // Process core memories
-    let usedTokens = 0
-    for (const core of coreMemories) {
-      const tokens = Math.ceil(core.content.length / CHARS_PER_TOKEN)
-      if (usedTokens + tokens <= CONTEXT_BUDGET.core) {
-        context.core.push({
-          content: core.content,
-          category: core.category,
-        })
-        usedTokens += tokens
-      }
-    }
-    context.totalTokens += usedTokens
 
     // 2. Vector search for long-term memories (only available in actions)
     // Note: Vector search filter only supports eq and or, not and
@@ -114,36 +194,7 @@ export const assembleContext = internalAction({
       ids: ltmSearchResults.map((r) => r._id),
     })
 
-    usedTokens = 0
-    for (const ltm of ltmDocs) {
-      const tokens = Math.ceil(ltm.summary.length / CHARS_PER_TOKEN)
-      if (usedTokens + tokens <= CONTEXT_BUDGET.longTerm) {
-        context.longTerm.push({
-          content: ltm.summary,
-          type: ltm.memoryType,
-          importance: ltm.currentImportance,
-        })
-        usedTokens += tokens
-      }
-    }
-    context.totalTokens += usedTokens
-
-    // 3. Process short-term memories
-    usedTokens = 0
-    for (const stm of stmResults) {
-      const content = stm.summary || stm.content
-      const tokens = Math.ceil(content.length / CHARS_PER_TOKEN)
-      if (usedTokens + tokens <= CONTEXT_BUDGET.shortTerm) {
-        context.shortTerm.push({
-          content,
-          importance: stm.importance,
-        })
-        usedTokens += tokens
-      }
-    }
-    context.totalTokens += usedTokens
-
-    return context
+    return buildMemoryContext(coreMemories, ltmDocs, stmResults)
   },
 })
 
@@ -154,79 +205,12 @@ export const assembleContextSimple = query({
     threadId: v.string(),
   },
   handler: async (ctx, args): Promise<MemoryContext> => {
-    const context: MemoryContext = {
-      core: [],
-      longTerm: [],
-      shortTerm: [],
-      totalTokens: 0,
-    }
+    const { coreMemories, ltmResults, stmResults } = await ctx.runQuery(
+      internal.retrieval.getMemoriesWithoutVector,
+      { userId: args.userId, threadId: args.threadId },
+    )
 
-    // 1. Get core memories
-    const coreMemories = await ctx.db
-      .query('coreMemories')
-      .withIndex('by_user', (q) =>
-        q.eq('userId', args.userId).eq('isActive', true),
-      )
-      .take(10)
-
-    let usedTokens = 0
-    for (const core of coreMemories) {
-      const tokens = Math.ceil(core.content.length / CHARS_PER_TOKEN)
-      if (usedTokens + tokens <= CONTEXT_BUDGET.core) {
-        context.core.push({
-          content: core.content,
-          category: core.category,
-        })
-        usedTokens += tokens
-      }
-    }
-    context.totalTokens += usedTokens
-
-    // 2. Get recent long-term memories by importance (no vector search)
-    const ltmResults = await ctx.db
-      .query('longTermMemories')
-      .withIndex('by_user', (q) =>
-        q.eq('userId', args.userId).eq('isActive', true),
-      )
-      .order('desc')
-      .take(10)
-
-    usedTokens = 0
-    for (const ltm of ltmResults) {
-      const tokens = Math.ceil(ltm.summary.length / CHARS_PER_TOKEN)
-      if (usedTokens + tokens <= CONTEXT_BUDGET.longTerm) {
-        context.longTerm.push({
-          content: ltm.summary,
-          type: ltm.memoryType,
-          importance: ltm.currentImportance,
-        })
-        usedTokens += tokens
-      }
-    }
-    context.totalTokens += usedTokens
-
-    // 3. Get recent short-term memories from thread
-    const stmResults = await ctx.db
-      .query('shortTermMemories')
-      .withIndex('by_thread', (q) => q.eq('threadId', args.threadId))
-      .order('desc')
-      .take(10)
-
-    usedTokens = 0
-    for (const stm of stmResults) {
-      const content = stm.summary || stm.content
-      const tokens = Math.ceil(content.length / CHARS_PER_TOKEN)
-      if (usedTokens + tokens <= CONTEXT_BUDGET.shortTerm) {
-        context.shortTerm.push({
-          content,
-          importance: stm.importance,
-        })
-        usedTokens += tokens
-      }
-    }
-    context.totalTokens += usedTokens
-
-    return context
+    return buildMemoryContext(coreMemories, ltmResults, stmResults)
   },
 })
 

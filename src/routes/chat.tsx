@@ -15,15 +15,18 @@ import {
   SparkleIcon,
   SpinnerIcon,
   TrashIcon,
-  UserIcon
+  UserIcon,
 } from '@phosphor-icons/react'
-import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
+import { Link, createFileRoute } from '@tanstack/react-router'
 import { useAction, useMutation, useQuery } from 'convex/react'
 import * as React from 'react'
 import { Streamdown } from 'streamdown'
 import type { UIMessage } from '@convex-dev/agent/react'
 
+import type { MemoryLayerConfig } from '@/components/memory-layer-indicator'
 import type { Id } from '@/lib/convex'
+import { DataStateWrapper } from '@/components/data-state-wrapper'
+import { MemoryLayerIndicator } from '@/components/memory-layer-indicator'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,14 +55,15 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { api } from '@/lib/convex'
+import { useRequireAuth } from '@/hooks/use-auth'
+import { useMemoryStats } from '@/hooks/use-memory'
 
 export const Route = createFileRoute('/chat')({
   component: ChatPage,
 })
 
 function ChatPage() {
-  const navigate = useNavigate()
-  const [userId, setUserId] = React.useState<Id<'users'> | null>(null)
+  const { userId, navigate } = useRequireAuth()
   const [selectedThreadId, setSelectedThreadId] = React.useState<string | null>(
     null,
   )
@@ -69,33 +73,9 @@ function ChatPage() {
     title?: string
   } | null>(null)
 
-  // Load userId from localStorage on mount
-  React.useEffect(() => {
-    const storedUserId = localStorage.getItem('userId')
-    if (storedUserId) {
-      setUserId(storedUserId as Id<'users'>)
-    } else {
-      navigate({ to: '/' })
-    }
-  }, [navigate])
-
   const threads = useQuery(api.threads.list, userId ? { userId } : 'skip')
-  const memoryStats = useQuery(
-    api.chat.getMemoryStats,
-    userId ? { userId } : 'skip',
-  )
-  const coreMemories = useQuery(
-    api.core.listActive,
-    userId ? { userId } : 'skip',
-  )
-  const sensoryMemories = useQuery(
-    api.sensory.listRecent,
-    userId ? { userId } : 'skip',
-  )
-  const shortTermMemories = useQuery(
-    api.shortTerm.listActive,
-    userId ? { userId } : 'skip',
-  )
+  const { memoryStats, coreMemories, sensoryMemories, shortTermMemories } =
+    useMemoryStats(userId)
 
   // Mutations
   const archiveThread = useMutation(api.threads.archive)
@@ -148,9 +128,7 @@ function ChatPage() {
 
   return (
     <div className="flex h-screen">
-      {/* Sidebar */}
       <div className="flex w-64 flex-col border-r bg-muted/30">
-        {/* Header */}
         <div className="flex items-center justify-between border-b p-4">
           <div className="flex items-center gap-2">
             <BrainIcon className="size-5 text-primary" weight="duotone" />
@@ -161,56 +139,59 @@ function ChatPage() {
           </Button>
         </div>
 
-        {/* Threads List */}
         <ScrollArea className="flex-1 p-2">
           <div className="space-y-1">
-            {threads === undefined ? (
-              <div className="space-y-2 p-2">
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-              </div>
-            ) : threads.length === 0 ? (
-              <div className="p-4 text-center text-xs text-muted-foreground">
-                No conversations yet.
-                <br />
-                Start a new one!
-              </div>
-            ) : (
-              threads.map((thread) => (
-                <div
-                  key={thread._id}
-                  className={`group flex items-center gap-1 rounded-md transition-colors ${
-                    selectedThreadId === thread._id
-                      ? 'bg-primary/10 text-primary'
-                      : 'hover:bg-muted'
-                  }`}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setSelectedThreadId(thread._id)}
-                    className="min-w-0 flex-1 truncate px-3 py-2 text-left text-xs"
-                  >
-                    {thread.title || 'Untitled'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setThreadToDelete(thread)
-                    }}
-                    className="mr-1 rounded p-1 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-                    aria-label="Delete conversation"
-                  >
-                    <TrashIcon className="size-3.5" />
-                  </button>
+            <DataStateWrapper
+              data={threads}
+              loading={
+                <div className="space-y-2 p-2">
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
                 </div>
-              ))
-            )}
+              }
+              empty={
+                <div className="p-4 text-center text-xs text-muted-foreground">
+                  No conversations yet.
+                  <br />
+                  Start a new one!
+                </div>
+              }
+              render={(items) =>
+                items.map((thread) => (
+                  <div
+                    key={thread._id}
+                    className={`group flex items-center gap-1 rounded-md transition-colors ${
+                      selectedThreadId === thread._id
+                        ? 'bg-primary/10 text-primary'
+                        : 'hover:bg-muted'
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setSelectedThreadId(thread._id)}
+                      className="min-w-0 flex-1 truncate px-3 py-2 text-left text-xs"
+                    >
+                      {thread.title || 'Untitled'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setThreadToDelete(thread)
+                      }}
+                      className="mr-1 rounded p-1 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                      aria-label="Delete conversation"
+                    >
+                      <TrashIcon className="size-3.5" />
+                    </button>
+                  </div>
+                ))
+              }
+            />
           </div>
         </ScrollArea>
 
-        {/* Memory Pipeline */}
         <div className="border-t p-4">
           <div className="mb-3 flex items-center justify-between text-xs font-medium text-muted-foreground">
             <span>Memory Pipeline</span>
@@ -221,93 +202,37 @@ function ChatPage() {
 
           {/* Visual Pipeline */}
           <div className="space-y-2 text-xs">
-            {/* Sensory Layer */}
-            <div className="flex items-center gap-2">
-              <div className="flex size-6 items-center justify-center rounded bg-blue-500/10 text-blue-600">
-                <LightningIcon className="size-3" weight="fill" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Sensory</span>
-                  <span className="font-medium">
-                    {sensoryMemories?.length ?? 0}
-                  </span>
-                </div>
-                <div className="mt-0.5 h-1 w-full overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full bg-blue-500 transition-all"
-                    style={{
-                      width: `${Math.min((sensoryMemories?.length ?? 0) * 10, 100)}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Short-term Layer */}
-            <div className="flex items-center gap-2">
-              <div className="flex size-6 items-center justify-center rounded bg-amber-500/10 text-amber-600">
-                <BrainIcon className="size-3" weight="duotone" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Short-term</span>
-                  <span className="font-medium">
-                    {shortTermMemories?.length ?? 0}
-                  </span>
-                </div>
-                <div className="mt-0.5 h-1 w-full overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full bg-amber-500 transition-all"
-                    style={{
-                      width: `${Math.min((shortTermMemories?.length ?? 0) * 10, 100)}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Long-term Layer */}
-            <div className="flex items-center gap-2">
-              <div className="flex size-6 items-center justify-center rounded bg-green-500/10 text-green-600">
-                <ChartBarIcon className="size-3" weight="fill" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Long-term</span>
-                  <span className="font-medium">{memoryStats?.total ?? 0}</span>
-                </div>
-                <div className="mt-0.5 h-1 w-full overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full bg-green-500 transition-all"
-                    style={{
-                      width: `${Math.min((memoryStats?.total ?? 0) * 10, 100)}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Core Layer */}
-            <div className="flex items-center gap-2">
-              <div className="flex size-6 items-center justify-center rounded bg-primary/10 text-primary">
-                <SparkleIcon className="size-3" weight="fill" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Core</span>
-                  <span className="font-medium">{memoryStats?.core ?? 0}</span>
-                </div>
-                <div className="mt-0.5 h-1 w-full overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full bg-primary transition-all"
-                    style={{
-                      width: `${Math.min((memoryStats?.core ?? 0) * 20, 100)}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
+            {(
+              [
+                {
+                  name: 'Sensory',
+                  icon: LightningIcon,
+                  color: 'blue',
+                  value: sensoryMemories?.length ?? 0,
+                },
+                {
+                  name: 'Short-term',
+                  icon: BrainIcon,
+                  color: 'amber',
+                  value: shortTermMemories?.length ?? 0,
+                },
+                {
+                  name: 'Long-term',
+                  icon: ChartBarIcon,
+                  color: 'green',
+                  value: memoryStats?.total ?? 0,
+                },
+                {
+                  name: 'Core',
+                  icon: SparkleIcon,
+                  color: 'primary',
+                  value: memoryStats?.core ?? 0,
+                  progressMultiplier: 20,
+                },
+              ] satisfies Array<MemoryLayerConfig>
+            ).map((layer) => (
+              <MemoryLayerIndicator key={layer.name} {...layer} />
+            ))}
           </div>
 
           <Link
@@ -319,7 +244,6 @@ function ChatPage() {
           </Link>
         </div>
 
-        {/* User Actions */}
         <div className="border-t p-4">
           <Button
             variant="ghost"
@@ -332,7 +256,6 @@ function ChatPage() {
         </div>
       </div>
 
-      {/* Main Chat Area */}
       <div className="flex min-h-0 flex-1 flex-col">
         {selectedThreadId && userId ? (
           <ChatArea
@@ -343,7 +266,6 @@ function ChatPage() {
             coreMemories={coreMemories}
           />
         ) : (
-          /* No Thread Selected */
           <div className="flex flex-1 flex-col items-center justify-center">
             <BrainIcon className="mb-4 size-12 text-muted-foreground" />
             <h2 className="mb-2 text-lg font-medium">
@@ -357,12 +279,14 @@ function ChatPage() {
               New Conversation
             </Button>
 
-            {/* Core Memories Display */}
             {coreMemories && coreMemories.length > 0 && (
               <Card className="mt-8 w-full max-w-md">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-sm">
-                    <SparkleIcon className="size-4 text-primary" weight="fill" />
+                    <SparkleIcon
+                      className="size-4 text-primary"
+                      weight="fill"
+                    />
                     What I Know About You
                   </CardTitle>
                   <CardDescription>
@@ -391,7 +315,6 @@ function ChatPage() {
         )}
       </div>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog
         open={threadToDelete !== null}
         onOpenChange={(open) => !open && setThreadToDelete(null)}
@@ -434,7 +357,9 @@ function ChatArea({
   userId: Id<'users'>
   message: string
   setMessage: (message: string) => void
-  coreMemories: Array<{ _id: string; content: string; category: string }> | undefined
+  coreMemories:
+    | Array<{ _id: string; content: string; category: string }>
+    | undefined
 }) {
   const messagesEndRef = React.useRef<HTMLDivElement>(null)
   const [showCoreMemories, setShowCoreMemories] = React.useState(true)
@@ -455,7 +380,6 @@ function ChatArea({
   React.useLayoutEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
-
 
   const isStreaming = messages.some((m) => m.status === 'streaming')
 
@@ -479,7 +403,6 @@ function ChatArea({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* Core Memory Context Banner */}
       {coreMemories && coreMemories.length > 0 && (
         <div className="border-b bg-muted/30">
           <button
@@ -519,7 +442,6 @@ function ChatArea({
         </div>
       )}
 
-      {/* Messages */}
       <ScrollArea className="min-h-0 flex-1 p-4">
         <div className="mx-auto max-w-2xl space-y-4">
           {status === 'LoadingFirstPage' ? (
@@ -544,7 +466,6 @@ function ChatArea({
         </div>
       </ScrollArea>
 
-      {/* Input Area */}
       <div className="border-t p-4">
         <div className="mx-auto flex max-w-2xl items-stretch gap-2">
           <Textarea
@@ -577,7 +498,6 @@ function ChatArea({
   )
 }
 
-// Message component with smooth text streaming
 function Message({ message }: { message: UIMessage }) {
   const isUser = message.role === 'user'
   const [visibleText] = useSmoothText(message.text, {
@@ -587,7 +507,6 @@ function Message({ message }: { message: UIMessage }) {
 
   return (
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
-      {/* Avatar */}
       <div
         className={`flex size-8 shrink-0 items-center justify-center rounded-full ${
           isUser ? 'bg-primary text-primary-foreground' : 'bg-muted'
@@ -600,7 +519,6 @@ function Message({ message }: { message: UIMessage }) {
         )}
       </div>
 
-      {/* Message content */}
       <div
         className={`flex max-w-[80%] flex-col gap-1 ${isUser ? 'items-end' : 'items-start'}`}
       >
@@ -628,7 +546,6 @@ function Message({ message }: { message: UIMessage }) {
           )}
         </div>
 
-        {/* Memory indicator for assistant messages */}
         {!isUser && message.status === 'success' && (
           <Tooltip>
             <TooltipTrigger className="flex items-center gap-1 text-[10px] text-muted-foreground">

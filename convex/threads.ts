@@ -1,4 +1,3 @@
-// convex/threads.ts
 import { v } from 'convex/values'
 
 import { components } from './_generated/api'

@@ -1,4 +1,3 @@
-// convex/chat.ts
 import { stepCountIs } from 'ai'
 import { listUIMessages, syncStreams, vStreamArgs } from '@convex-dev/agent'
 import { paginationOptsValidator } from 'convex/server'
@@ -6,16 +5,9 @@ import { v } from 'convex/values'
 
 import { api, components, internal } from './_generated/api'
 import { action, internalAction, mutation, query } from './_generated/server'
-import { memoryAgent } from './agent'
+import { AGENT_INSTRUCTIONS, memoryAgent } from './agent'
 import { embeddingCache, memoryStats, rateLimiter } from './components'
-
-// Type for memory context (matches retrieval.ts)
-interface MemoryContext {
-  core: Array<{ content: string; category: string }>
-  longTerm: Array<{ content: string; type: string; importance: number }>
-  shortTerm: Array<{ content: string; importance: number }>
-  totalTokens: number
-}
+import { formatContextForPrompt } from './retrieval'
 
 // Create a new thread for a user
 export const createConversation = action({
@@ -91,16 +83,12 @@ export const generateResponseAsync = internalAction({
     )
 
     // 3. Format memory context as system message prefix
-    const memoryBlock = formatMemoryContext(memoryContext)
+    const memoryBlock = formatContextForPrompt(memoryContext)
 
     // 4. Generate with memory-enriched context using streaming
-    const baseInstructions = `You are a helpful AI assistant with memory of previous conversations.
-Use your memories to personalize responses and reference past context naturally.
-Important information shared by the user will be automatically remembered through the memory pipeline.`
-
     const systemMessage = memoryBlock
-      ? `${baseInstructions}\n\n${memoryBlock}`
-      : baseInstructions
+      ? `${AGENT_INSTRUCTIONS}\n\n${memoryBlock}`
+      : AGENT_INSTRUCTIONS
 
     // Stream the response with deltas saved to DB for real-time UI updates
     // Type assertion needed due to complex generic inference with Agent tools
@@ -108,7 +96,11 @@ Important information shared by the user will be automatically remembered throug
       ctx,
       { threadId, userId },
       // Pass system to override agent instructions with memory context
-      { promptMessageId, system: systemMessage, stopWhen: stepCountIs(5) } as any,
+      {
+        promptMessageId,
+        system: systemMessage,
+        stopWhen: stepCountIs(5),
+      } as any,
       {
         saveStreamDeltas: {
           throttleMs: 50, // Update frequently for smooth streaming
@@ -184,20 +176,3 @@ export const getMemoryStats = query({
     }
   },
 })
-
-function formatMemoryContext(context: MemoryContext): string {
-  let text = ''
-  if (context.core.length > 0) {
-    text += '## What I Know About You\n'
-    text += `${context.core.map((c) => `- ${c.content}`).join('\n')}\n\n`
-  }
-  if (context.longTerm.length > 0) {
-    text += '## Relevant Memories\n'
-    text += `${context.longTerm.map((m) => `- ${m.content}`).join('\n')}\n\n`
-  }
-  if (context.shortTerm.length > 0) {
-    text += '## Current Context\n'
-    text += `${context.shortTerm.map((m) => `- ${m.content}`).join('\n')}\n`
-  }
-  return text
-}

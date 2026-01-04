@@ -1,10 +1,8 @@
-// convex/sensory.ts
 import { v } from 'convex/values'
 
 import { internal } from './_generated/api'
 import { internalMutation, mutation, query } from './_generated/server'
-
-const ATTENTION_THRESHOLD = 0.3
+import { ATTENTION_THRESHOLD } from './config'
 
 export const ingestMessage = mutation({
   args: {

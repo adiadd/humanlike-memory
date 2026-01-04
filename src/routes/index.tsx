@@ -51,7 +51,6 @@ function LandingPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Header */}
       <header className="border-b px-6 py-4">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <div className="flex items-center gap-2">
@@ -61,7 +60,6 @@ function LandingPage() {
         </div>
       </header>
 
-      {/* Hero Section */}
       <section className="flex flex-1 flex-col items-center justify-center px-6 py-16">
         <div className="mx-auto max-w-3xl text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs">
@@ -102,7 +100,6 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* Features Section */}
       <section className="border-t bg-muted/30 px-6 py-16">
         <div className="mx-auto max-w-6xl">
           <h2 className="mb-8 text-center text-2xl font-semibold">
@@ -144,7 +141,6 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="border-t px-6 py-6">
         <div className="mx-auto flex max-w-6xl items-center justify-between text-xs text-muted-foreground">
           <span>Human-like Memory MVP</span>

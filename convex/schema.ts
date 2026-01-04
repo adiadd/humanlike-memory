@@ -1,6 +1,7 @@
-// convex/schema.ts
 import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
+
+import { categoryValidator } from './types'
 
 export default defineSchema({
   users: defineTable({
@@ -191,14 +192,7 @@ export default defineSchema({
     embedding: v.array(v.float64()),
 
     // Classification
-    category: v.union(
-      v.literal('identity'),
-      v.literal('preference'),
-      v.literal('relationship'),
-      v.literal('behavioral'),
-      v.literal('goal'),
-      v.literal('constraint'),
-    ),
+    category: categoryValidator,
 
     // Confidence and evidence
     confidence: v.float64(),

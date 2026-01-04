@@ -11,6 +11,7 @@
 import type * as agent from "../agent.js";
 import type * as chat from "../chat.js";
 import type * as components_ from "../components.js";
+import type * as config from "../config.js";
 import type * as consolidation from "../consolidation.js";
 import type * as core from "../core.js";
 import type * as crons from "../crons.js";
@@ -23,6 +24,7 @@ import type * as retrieval from "../retrieval.js";
 import type * as sensory from "../sensory.js";
 import type * as shortTerm from "../shortTerm.js";
 import type * as threads from "../threads.js";
+import type * as types from "../types.js";
 import type * as users from "../users.js";
 
 import type {
@@ -35,6 +37,7 @@ declare const fullApi: ApiFromModules<{
   agent: typeof agent;
   chat: typeof chat;
   components: typeof components_;
+  config: typeof config;
   consolidation: typeof consolidation;
   core: typeof core;
   crons: typeof crons;
@@ -47,6 +50,7 @@ declare const fullApi: ApiFromModules<{
   sensory: typeof sensory;
   shortTerm: typeof shortTerm;
   threads: typeof threads;
+  types: typeof types;
   users: typeof users;
 }>;
 

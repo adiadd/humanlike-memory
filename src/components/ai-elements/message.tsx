@@ -16,7 +16,6 @@ import { ButtonGroup, ButtonGroupText } from '@/components/ui/button-group'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
@@ -90,14 +89,12 @@ export const MessageAction = ({
 
   if (tooltip) {
     return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger>{button}</TooltipTrigger>
-          <TooltipContent>
-            <p>{tooltip}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger>{button}</TooltipTrigger>
+        <TooltipContent>
+          <p>{tooltip}</p>
+        </TooltipContent>
+      </Tooltip>
     )
   }
 
@@ -260,7 +257,6 @@ export type MessageBranchNextProps = ComponentProps<typeof Button>
 
 export const MessageBranchNext = ({
   children,
-  className,
   ...props
 }: MessageBranchNextProps) => {
   const { goToNext, totalBranches } = useMessageBranch()
@@ -312,10 +308,37 @@ export const MessageResponse = memo(
       {...props}
     />
   ),
-  (prevProps, nextProps) => prevProps.children === nextProps.children,
 )
 
 MessageResponse.displayName = 'MessageResponse'
+
+type RemoveAttachmentButtonProps = {
+  onRemove: () => void
+  className?: string
+}
+
+function RemoveAttachmentButton({
+  onRemove,
+  className,
+}: RemoveAttachmentButtonProps) {
+  return (
+    <Button
+      aria-label="Remove attachment"
+      className={cn(
+        'size-6 rounded-full p-0 opacity-0 transition-opacity group-hover:opacity-100 [&>svg]:size-3',
+        className,
+      )}
+      onClick={(e) => {
+        e.stopPropagation()
+        onRemove()
+      }}
+      variant="ghost"
+    >
+      <XIcon />
+      <span className="sr-only">Remove</span>
+    </Button>
+  )
+}
 
 export type MessageAttachmentProps = HTMLAttributes<HTMLDivElement> & {
   data: FileUIPart
@@ -355,18 +378,10 @@ export function MessageAttachment({
             width={100}
           />
           {onRemove && (
-            <Button
-              aria-label="Remove attachment"
-              className="absolute top-2 right-2 size-6 rounded-full bg-background/80 p-0 opacity-0 backdrop-blur-sm transition-opacity hover:bg-background group-hover:opacity-100 [&>svg]:size-3"
-              onClick={(e) => {
-                e.stopPropagation()
-                onRemove()
-              }}
-              variant="ghost"
-            >
-              <XIcon />
-              <span className="sr-only">Remove</span>
-            </Button>
+            <RemoveAttachmentButton
+              onRemove={onRemove}
+              className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm hover:bg-background"
+            />
           )}
         </>
       ) : (
@@ -384,18 +399,10 @@ export function MessageAttachment({
             </TooltipContent>
           </Tooltip>
           {onRemove && (
-            <Button
-              aria-label="Remove attachment"
-              className="size-6 shrink-0 rounded-full p-0 opacity-0 transition-opacity hover:bg-accent group-hover:opacity-100 [&>svg]:size-3"
-              onClick={(e) => {
-                e.stopPropagation()
-                onRemove()
-              }}
-              variant="ghost"
-            >
-              <XIcon />
-              <span className="sr-only">Remove</span>
-            </Button>
+            <RemoveAttachmentButton
+              onRemove={onRemove}
+              className="shrink-0 hover:bg-accent"
+            />
           )}
         </>
       )}

@@ -1,6 +1,5 @@
 import * as React from 'react'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useQuery } from 'convex/react'
+import { createFileRoute } from '@tanstack/react-router'
 import {
   BrainIcon,
   CaretLeftIcon,
@@ -9,75 +8,43 @@ import {
   EyeIcon,
   LightningIcon,
   SparkleIcon,
+  SpinnerIcon,
 } from '@phosphor-icons/react'
 
-import type { Id } from '@/lib/convex'
+import { useRequireAuth } from '@/hooks/use-auth'
+import { useMemoryStats } from '@/hooks/use-memory'
+import { MemoryTab } from '@/components/memory-tab'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { api } from '@/lib/convex'
 
 export const Route = createFileRoute('/memory')({
   component: MemoryDashboard,
 })
 
 function MemoryDashboard() {
-  const navigate = useNavigate()
-  const [userId, setUserId] = React.useState<Id<'users'> | null>(null)
-
-  // Load userId from localStorage on mount
-  React.useEffect(() => {
-    const storedUserId = localStorage.getItem('userId')
-    if (storedUserId) {
-      setUserId(storedUserId as Id<'users'>)
-    } else {
-      navigate({ to: '/' })
-    }
-  }, [navigate])
-
-  const memoryStats = useQuery(
-    api.chat.getMemoryStats,
-    userId ? { userId } : 'skip',
-  )
-  const sensoryMemories = useQuery(
-    api.sensory.listRecent,
-    userId ? { userId } : 'skip',
-  )
-  const shortTermMemories = useQuery(
-    api.shortTerm.listActive,
-    userId ? { userId } : 'skip',
-  )
-  const longTermMemories = useQuery(
-    api.longTerm.listActive,
-    userId ? { userId } : 'skip',
-  )
-  const coreMemories = useQuery(
-    api.core.listActive,
-    userId ? { userId } : 'skip',
-  )
+  const { userId, navigate } = useRequireAuth()
+  const {
+    memoryStats,
+    sensoryMemories,
+    shortTermMemories,
+    longTermMemories,
+    coreMemories,
+  } = useMemoryStats(userId)
 
   if (!userId) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <SpinnerIcon className="size-6 animate-spin" />
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-4">
@@ -98,9 +65,7 @@ function MemoryDashboard() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="mx-auto max-w-6xl px-6 py-8">
-        {/* Stats Overview */}
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
             icon={<EyeIcon weight="duotone" />}
@@ -132,7 +97,6 @@ function MemoryDashboard() {
           />
         </div>
 
-        {/* Memory Tabs */}
         <Tabs defaultValue="sensory" className="space-y-4">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="sensory" className="text-xs">
@@ -153,301 +117,206 @@ function MemoryDashboard() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Sensory Memory Tab */}
           <TabsContent value="sensory">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <EyeIcon className="size-4 text-blue-500" weight="duotone" />
-                  Sensory Memory
-                </CardTitle>
-                <CardDescription>
-                  Raw input buffer with attention filtering. Low-attention
-                  inputs are discarded.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[400px]">
-                  {sensoryMemories === undefined ? (
-                    <MemoryListSkeleton />
-                  ) : sensoryMemories.length === 0 ? (
-                    <EmptyState
-                      message="No sensory memories yet"
-                      icon={<EyeIcon className="mb-4 size-12 text-blue-500/30" />}
-                      hint="Send messages in the chat to populate the sensory buffer. Each message is scored for attention - meaningful content passes through while noise is filtered out."
-                    />
-                  ) : (
-                    <div className="space-y-3">
-                      {sensoryMemories.map((memory) => (
-                        <div
-                          key={memory._id}
-                          className="rounded-lg border bg-card p-3 text-sm"
-                        >
-                          <div className="mb-2 flex items-start justify-between gap-2">
-                            <p className="line-clamp-2 flex-1">
-                              {memory.content}
-                            </p>
-                            <Badge
-                              variant={
-                                memory.status === 'promoted'
-                                  ? 'default'
-                                  : 'secondary'
-                              }
-                              className="shrink-0"
-                            >
-                              {memory.status}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <LightningIcon className="size-3" />
-                              <span>
-                                Attention:{' '}
-                                {(memory.attentionScore * 100).toFixed(0)}%
-                              </span>
-                            </div>
-                            <span>{formatTimestamp(memory.createdAt)}</span>
-                          </div>
-                          <Progress
-                            value={memory.attentionScore * 100}
-                            className="mt-2 h-1"
-                          />
-                        </div>
-                      ))}
+            <MemoryTab
+              icon={
+                <EyeIcon className="size-4 text-blue-500" weight="duotone" />
+              }
+              title="Sensory Memory"
+              description="Raw input buffer with attention filtering. Low-attention inputs are discarded."
+              data={sensoryMemories}
+              emptyState={{
+                message: 'No sensory memories yet',
+                icon: <EyeIcon className="mb-4 size-12 text-blue-500/30" />,
+                hint: 'Send messages in the chat to populate the sensory buffer. Each message is scored for attention - meaningful content passes through while noise is filtered out.',
+              }}
+              renderItem={(memory) => (
+                <div className="rounded-lg border bg-card p-3 text-sm">
+                  <div className="mb-2 flex items-start justify-between gap-2">
+                    <p className="line-clamp-2 flex-1">{memory.content}</p>
+                    <Badge
+                      variant={
+                        memory.status === 'promoted' ? 'default' : 'secondary'
+                      }
+                      className="shrink-0"
+                    >
+                      {memory.status}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <LightningIcon className="size-3" />
+                      <span>
+                        Attention: {(memory.attentionScore * 100).toFixed(0)}%
+                      </span>
                     </div>
-                  )}
-                </ScrollArea>
-              </CardContent>
-            </Card>
+                    <span>{formatTimestamp(memory.createdAt)}</span>
+                  </div>
+                  <Progress
+                    value={memory.attentionScore * 100}
+                    className="mt-2 h-1"
+                  />
+                </div>
+              )}
+            />
           </TabsContent>
 
-          {/* Short-Term Memory Tab */}
           <TabsContent value="short-term">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <ClockIcon className="size-4 text-amber-500" weight="duotone" />
-                  Short-Term Memory
-                </CardTitle>
-                <CardDescription>
-                  Active working memory with extracted entities and topic
-                  clustering.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[400px]">
-                  {shortTermMemories === undefined ? (
-                    <MemoryListSkeleton />
-                  ) : shortTermMemories.length === 0 ? (
-                    <EmptyState
-                      message="No short-term memories"
-                      icon={
-                        <ClockIcon className="mb-4 size-12 text-amber-500/30" />
-                      }
-                      hint="Messages that pass the attention filter (typically >30% attention score) are promoted here. Short-term memory groups related messages by topic and extracts entities."
-                    />
-                  ) : (
-                    <div className="space-y-3">
-                      {shortTermMemories.map((memory) => (
-                        <div
-                          key={memory._id}
-                          className="rounded-lg border bg-card p-3 text-sm"
+            <MemoryTab
+              icon={
+                <ClockIcon className="size-4 text-amber-500" weight="duotone" />
+              }
+              title="Short-Term Memory"
+              description="Active working memory with extracted entities and topic clustering."
+              data={shortTermMemories}
+              emptyState={{
+                message: 'No short-term memories',
+                icon: <ClockIcon className="mb-4 size-12 text-amber-500/30" />,
+                hint: 'Messages that pass the attention filter (typically >30% attention score) are promoted here. Short-term memory groups related messages by topic and extracts entities.',
+              }}
+              renderItem={(memory) => (
+                <div className="rounded-lg border bg-card p-3 text-sm">
+                  <p className="mb-2 line-clamp-2">
+                    {memory.summary || memory.content}
+                  </p>
+                  {memory.entities.length > 0 && (
+                    <div className="mb-2 flex flex-wrap gap-1">
+                      {memory.entities.slice(0, 5).map((entity) => (
+                        <Badge
+                          key={`${entity.type}-${entity.name}`}
+                          variant="outline"
+                          className="text-xs"
                         >
-                          <p className="mb-2 line-clamp-2">
-                            {memory.summary || memory.content}
-                          </p>
-                          {memory.entities.length > 0 && (
-                            <div className="mb-2 flex flex-wrap gap-1">
-                              {memory.entities.slice(0, 5).map((entity) => (
-                                <Badge
-                                  key={`${entity.type}-${entity.name}`}
-                                  variant="outline"
-                                  className="text-xs"
-                                >
-                                  {entity.type}: {entity.name}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <div className="flex items-center gap-4">
-                              <span>
-                                Importance:{' '}
-                                {(memory.importance * 100).toFixed(0)}%
-                              </span>
-                              <span>
-                                Expires: {formatTimestamp(memory.expiresAt)}
-                              </span>
-                            </div>
-                          </div>
-                          <Progress
-                            value={memory.importance * 100}
-                            className="mt-2 h-1"
-                          />
-                        </div>
+                          {entity.type}: {entity.name}
+                        </Badge>
                       ))}
                     </div>
                   )}
-                </ScrollArea>
-              </CardContent>
-            </Card>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <div className="flex items-center gap-4">
+                      <span>
+                        Importance: {(memory.importance * 100).toFixed(0)}%
+                      </span>
+                      <span>Expires: {formatTimestamp(memory.expiresAt)}</span>
+                    </div>
+                  </div>
+                  <Progress
+                    value={memory.importance * 100}
+                    className="mt-2 h-1"
+                  />
+                </div>
+              )}
+            />
           </TabsContent>
 
-          {/* Long-Term Memory Tab */}
           <TabsContent value="long-term">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <DatabaseIcon
-                    className="size-4 text-green-500"
-                    weight="duotone"
-                  />
-                  Long-Term Memory
-                </CardTitle>
-                <CardDescription>
-                  Consolidated knowledge with semantic deduplication and decay
-                  tracking.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[400px]">
-                  {longTermMemories === undefined ? (
-                    <MemoryListSkeleton />
-                  ) : longTermMemories.length === 0 ? (
-                    <EmptyState
-                      message="No long-term memories yet"
-                      icon={
-                        <DatabaseIcon className="mb-4 size-12 text-green-500/30" />
+            <MemoryTab
+              icon={
+                <DatabaseIcon
+                  className="size-4 text-green-500"
+                  weight="duotone"
+                />
+              }
+              title="Long-Term Memory"
+              description="Consolidated knowledge with semantic deduplication and decay tracking."
+              data={longTermMemories}
+              emptyState={{
+                message: 'No long-term memories yet',
+                icon: (
+                  <DatabaseIcon className="mb-4 size-12 text-green-500/30" />
+                ),
+                hint: 'Short-term memories that persist across conversations and show recurring patterns are consolidated here. Long-term memories are categorized as episodic (events) or semantic (facts).',
+              }}
+              renderItem={(memory) => (
+                <div className="rounded-lg border bg-card p-3 text-sm">
+                  <div className="mb-2 flex items-start justify-between gap-2">
+                    <p className="line-clamp-2 flex-1">{memory.summary}</p>
+                    <Badge
+                      variant={
+                        memory.memoryType === 'semantic'
+                          ? 'default'
+                          : 'secondary'
                       }
-                      hint="Short-term memories that persist across conversations and show recurring patterns are consolidated here. Long-term memories are categorized as episodic (events) or semantic (facts)."
-                    />
-                  ) : (
-                    <div className="space-y-3">
-                      {longTermMemories.map((memory) => (
-                        <div
-                          key={memory._id}
-                          className="rounded-lg border bg-card p-3 text-sm"
-                        >
-                          <div className="mb-2 flex items-start justify-between gap-2">
-                            <p className="line-clamp-2 flex-1">
-                              {memory.summary}
-                            </p>
-                            <Badge
-                              variant={
-                                memory.memoryType === 'semantic'
-                                  ? 'default'
-                                  : 'secondary'
-                              }
-                              className="shrink-0"
-                            >
-                              {memory.memoryType}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            <span>
-                              Importance:{' '}
-                              {(memory.currentImportance * 100).toFixed(0)}%
-                            </span>
-                            <span>Stability: {memory.stability}</span>
-                            <span>Accessed: {memory.accessCount}x</span>
-                          </div>
-                          <div className="mt-2 grid grid-cols-2 gap-2">
-                            <div>
-                              <div className="mb-1 text-xs text-muted-foreground">
-                                Importance
-                              </div>
-                              <Progress
-                                value={memory.currentImportance * 100}
-                                className="h-1"
-                              />
-                            </div>
-                            <div>
-                              <div className="mb-1 text-xs text-muted-foreground">
-                                Stability
-                              </div>
-                              <Progress
-                                value={Math.min(memory.stability / 10, 100)}
-                                className="h-1"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                      className="shrink-0"
+                    >
+                      {memory.memoryType}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <span>
+                      Importance: {(memory.currentImportance * 100).toFixed(0)}%
+                    </span>
+                    <span>Stability: {memory.stability}</span>
+                    <span>Accessed: {memory.accessCount}x</span>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <div>
+                      <div className="mb-1 text-xs text-muted-foreground">
+                        Importance
+                      </div>
+                      <Progress
+                        value={memory.currentImportance * 100}
+                        className="h-1"
+                      />
                     </div>
-                  )}
-                </ScrollArea>
-              </CardContent>
-            </Card>
+                    <div>
+                      <div className="mb-1 text-xs text-muted-foreground">
+                        Stability
+                      </div>
+                      <Progress
+                        value={Math.min(memory.stability / 10, 100)}
+                        className="h-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            />
           </TabsContent>
 
-          {/* Core Memory Tab */}
           <TabsContent value="core">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <SparkleIcon
-                    className="size-4 text-purple-500"
-                    weight="duotone"
+            <MemoryTab
+              icon={
+                <SparkleIcon
+                  className="size-4 text-purple-500"
+                  weight="duotone"
+                />
+              }
+              title="Core Memory"
+              description="Stable identity facts that are always included in context."
+              data={coreMemories}
+              emptyState={{
+                message: 'No core memories yet',
+                icon: (
+                  <SparkleIcon className="mb-4 size-12 text-purple-500/30" />
+                ),
+                hint: 'The reflection engine analyzes patterns across your conversations and promotes stable identity facts here. Core memories include your name, preferences, relationships, and beliefs.',
+              }}
+              renderItem={(memory) => (
+                <div className="rounded-lg border bg-card p-3 text-sm">
+                  <div className="mb-2 flex items-start justify-between gap-2">
+                    <p className="flex-1">{memory.content}</p>
+                    <Badge variant="outline" className="shrink-0 capitalize">
+                      {memory.category}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <span>
+                      Confidence: {(memory.confidence * 100).toFixed(0)}%
+                    </span>
+                    <span>Evidence: {memory.evidenceCount} sources</span>
+                    <span>{formatTimestamp(memory.createdAt)}</span>
+                  </div>
+                  <Progress
+                    value={memory.confidence * 100}
+                    className="mt-2 h-1"
                   />
-                  Core Memory
-                </CardTitle>
-                <CardDescription>
-                  Stable identity facts that are always included in context.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[400px]">
-                  {coreMemories === undefined ? (
-                    <MemoryListSkeleton />
-                  ) : coreMemories.length === 0 ? (
-                    <EmptyState
-                      message="No core memories yet"
-                      icon={
-                        <SparkleIcon className="mb-4 size-12 text-purple-500/30" />
-                      }
-                      hint="The reflection engine analyzes patterns across your conversations and promotes stable identity facts here. Core memories include your name, preferences, relationships, and beliefs."
-                    />
-                  ) : (
-                    <div className="space-y-3">
-                      {coreMemories.map((memory) => (
-                        <div
-                          key={memory._id}
-                          className="rounded-lg border bg-card p-3 text-sm"
-                        >
-                          <div className="mb-2 flex items-start justify-between gap-2">
-                            <p className="flex-1">{memory.content}</p>
-                            <Badge
-                              variant="outline"
-                              className="shrink-0 capitalize"
-                            >
-                              {memory.category}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            <span>
-                              Confidence: {(memory.confidence * 100).toFixed(0)}
-                              %
-                            </span>
-                            <span>
-                              Evidence: {memory.evidenceCount} sources
-                            </span>
-                            <span>{formatTimestamp(memory.createdAt)}</span>
-                          </div>
-                          <Progress
-                            value={memory.confidence * 100}
-                            className="mt-2 h-1"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </ScrollArea>
-              </CardContent>
-            </Card>
+                </div>
+              )}
+            />
           </TabsContent>
         </Tabs>
 
-        {/* Architecture Info */}
         <div className="mt-8">
           <Card>
             <CardHeader>
@@ -488,8 +357,6 @@ function MemoryDashboard() {
   )
 }
 
-// Helper Components
-
 function StatCard({
   icon,
   title,
@@ -525,40 +392,6 @@ function StatCard({
         </div>
       </CardContent>
     </Card>
-  )
-}
-
-function MemoryListSkeleton() {
-  return (
-    <div className="space-y-3">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="rounded-lg border bg-card p-3">
-          <Skeleton className="mb-2 h-4 w-3/4" />
-          <Skeleton className="mb-2 h-3 w-1/2" />
-          <Skeleton className="h-1 w-full" />
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function EmptyState({
-  message,
-  icon,
-  hint,
-}: {
-  message: string
-  icon?: React.ReactNode
-  hint?: string
-}) {
-  return (
-    <div className="flex h-[300px] flex-col items-center justify-center text-center px-4">
-      {icon || <BrainIcon className="mb-4 size-12 text-muted-foreground/30" />}
-      <p className="text-sm text-muted-foreground mb-2">{message}</p>
-      {hint && (
-        <p className="text-xs text-muted-foreground/70 max-w-sm">{hint}</p>
-      )}
-    </div>
   )
 }
 

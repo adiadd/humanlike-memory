@@ -11,6 +11,7 @@ import appCss from '../styles.css?url'
 import type { QueryClient } from '@tanstack/react-query'
 import { ModeToggle } from '@/components/mode-toggle'
 import { ThemeProvider } from '@/components/theme-provider'
+import { TooltipProvider } from '@/components/ui/tooltip'
 
 const themeScript = `
   (function() {
@@ -71,10 +72,12 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body className="min-h-screen bg-background antialiased">
         <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-          <div className="fixed top-4 right-4 z-50">
-            <ModeToggle />
-          </div>
-          {children}
+          <TooltipProvider>
+            <div className="fixed top-4 right-4 z-50">
+              <ModeToggle />
+            </div>
+            {children}
+          </TooltipProvider>
         </ThemeProvider>
         <TanStackDevtools
           config={{

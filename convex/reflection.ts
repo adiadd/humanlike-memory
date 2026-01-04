@@ -10,6 +10,7 @@ import {
   internalQuery,
 } from './_generated/server'
 import { embeddingCache, rateLimiter, workflowManager } from './components'
+import type { CoreMemoryCategory } from './types'
 
 import type { Id } from './_generated/dataModel'
 
@@ -177,13 +178,7 @@ export const promoteToCore = internalMutation({
     const id = await ctx.db.insert('coreMemories', {
       content: args.pattern.content,
       embedding: args.embedding,
-      category: args.pattern.category as
-        | 'identity'
-        | 'preference'
-        | 'relationship'
-        | 'behavioral'
-        | 'goal'
-        | 'constraint',
+      category: args.pattern.category as CoreMemoryCategory,
       confidence: args.pattern.confidence,
       evidenceCount: args.pattern.supportingCount,
       userId: args.userId,
@@ -256,7 +251,7 @@ export const checkExistingCore = internalQuery({
     content: v.string(),
   },
   handler: async (ctx, args) => {
-    return await ctx.db
+    return ctx.db
       .query('coreMemories')
       .withIndex('by_user', (q) =>
         q.eq('userId', args.userId).eq('isActive', true),

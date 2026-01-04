@@ -1,4 +1,3 @@
-// convex/extraction.ts
 import { anthropic } from '@ai-sdk/anthropic'
 import { Output, generateText } from 'ai'
 import { v } from 'convex/values'
@@ -7,6 +6,7 @@ import { z } from 'zod'
 import { internal } from './_generated/api'
 import { internalAction } from './_generated/server'
 import { embeddingCache, rateLimiter } from './components'
+import { TOPIC_SIMILARITY_THRESHOLD } from './config'
 
 const ExtractionSchema = z.object({
   entities: z.array(
@@ -37,7 +37,6 @@ const ExtractionSchema = z.object({
 })
 
 const MAX_RETRIES = 3
-const TOPIC_SIMILARITY_THRESHOLD = 0.82
 
 export const extractAndEmbed = internalAction({
   args: {

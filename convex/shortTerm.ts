@@ -1,16 +1,16 @@
-// convex/shortTerm.ts
 import { v } from 'convex/values'
 
 import { internal } from './_generated/api'
 import { internalMutation, internalQuery, query } from './_generated/server'
-
-const STM_EXPIRY_HOURS = 4
+import { STM_EXPIRY_HOURS } from './config'
+import type { MutationCtx } from './_generated/server'
+import type { Id } from './_generated/dataModel'
 
 // Query to get STM by ID (used by consolidation)
 export const get = internalQuery({
   args: { id: v.id('shortTermMemories') },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.id)
+    return ctx.db.get(args.id)
   },
 })
 
@@ -22,7 +22,7 @@ export const getPromotionCandidates = internalQuery({
   },
   handler: async (ctx, args) => {
     const now = Date.now()
-    return await ctx.db
+    return ctx.db
       .query('shortTermMemories')
       .withIndex('by_user_importance')
       .filter((q) =>
@@ -117,15 +117,15 @@ export const create = internalMutation({
 })
 
 async function findOrCreateTopic(
-  ctx: any,
-  userId: string,
+  ctx: MutationCtx,
+  userId: Id<'users'>,
   embedding: Array<number>,
   entities: Array<{ name: string; type: string; salience: number }>,
   existingTopicId: string | null,
-) {
+): Promise<Id<'topics'>> {
   // If an existing topic was found via vector search in the action, use it
   if (existingTopicId) {
-    const topic = await ctx.db.get(existingTopicId)
+    const topic = await ctx.db.get(existingTopicId as Id<'topics'>)
     if (topic) {
       // Update topic centroid with the new embedding
       const newCentroid = topic.centroid.map(
@@ -136,7 +136,7 @@ async function findOrCreateTopic(
         centroid: newCentroid,
         memberCount: topic.memberCount + 1,
       })
-      return existingTopicId
+      return topic._id
     }
   }
 
@@ -144,7 +144,7 @@ async function findOrCreateTopic(
   const label =
     entities.length > 0 ? `${entities[0].type}: ${entities[0].name}` : 'General'
 
-  return await ctx.db.insert('topics', {
+  return ctx.db.insert('topics', {
     userId,
     label,
     centroid: embedding,
@@ -156,7 +156,7 @@ async function findOrCreateTopic(
 export const byThread = query({
   args: { threadId: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
+    return ctx.db
       .query('shortTermMemories')
       .withIndex('by_thread', (q) => q.eq('threadId', args.threadId))
       .order('desc')
@@ -169,7 +169,7 @@ export const listActive = query({
   args: { userId: v.id('users') },
   handler: async (ctx, args) => {
     const now = Date.now()
-    return await ctx.db
+    return ctx.db
       .query('shortTermMemories')
       .withIndex('by_user_importance', (q) => q.eq('userId', args.userId))
       .filter((q) => q.gt(q.field('expiresAt'), now))

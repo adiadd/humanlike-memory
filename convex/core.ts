@@ -1,12 +1,12 @@
-// convex/core.ts
 import { v } from 'convex/values'
 
 import { internalMutation, mutation, query } from './_generated/server'
+import { categoryValidator } from './types'
 
 export const listActive = query({
   args: { userId: v.id('users') },
   handler: async (ctx, args) => {
-    return await ctx.db
+    return ctx.db
       .query('coreMemories')
       .withIndex('by_user', (q) =>
         q.eq('userId', args.userId).eq('isActive', true),
@@ -18,17 +18,10 @@ export const listActive = query({
 export const byCategory = query({
   args: {
     userId: v.id('users'),
-    category: v.union(
-      v.literal('identity'),
-      v.literal('preference'),
-      v.literal('relationship'),
-      v.literal('behavioral'),
-      v.literal('goal'),
-      v.literal('constraint'),
-    ),
+    category: categoryValidator,
   },
   handler: async (ctx, args) => {
-    return await ctx.db
+    return ctx.db
       .query('coreMemories')
       .withIndex('by_user_category', (q) =>
         q
@@ -44,20 +37,13 @@ export const create = internalMutation({
   args: {
     content: v.string(),
     embedding: v.array(v.float64()),
-    category: v.union(
-      v.literal('identity'),
-      v.literal('preference'),
-      v.literal('relationship'),
-      v.literal('behavioral'),
-      v.literal('goal'),
-      v.literal('constraint'),
-    ),
+    category: categoryValidator,
     confidence: v.float64(),
     evidenceCount: v.number(),
     userId: v.id('users'),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert('coreMemories', {
+    return ctx.db.insert('coreMemories', {
       content: args.content,
       embedding: args.embedding,
       category: args.category,

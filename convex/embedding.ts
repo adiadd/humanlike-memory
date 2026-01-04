@@ -1,5 +1,3 @@
-// convex/embedding.ts
-// Dedicated embedding action for caching
 import { openai } from '@ai-sdk/openai'
 import { embed } from 'ai'
 import { v } from 'convex/values'

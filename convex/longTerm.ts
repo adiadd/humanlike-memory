@@ -1,4 +1,3 @@
-// convex/longTerm.ts
 import { v } from 'convex/values'
 
 import { internal } from './_generated/api'
@@ -9,10 +8,9 @@ import {
   query,
 } from './_generated/server'
 import { memoryStats } from './components'
+import { DEDUP_SIMILARITY_THRESHOLD } from './config'
 
 import type { Id } from './_generated/dataModel'
-
-const DEDUP_SIMILARITY_THRESHOLD = 0.95
 
 // Type for STM document returned from query
 interface STMDoc {
@@ -37,7 +35,7 @@ interface SearchResult {
 export const getMemoryById = internalQuery({
   args: { memoryId: v.id('longTermMemories') },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.memoryId)
+    return ctx.db.get(args.memoryId)
   },
 })
 
@@ -49,7 +47,7 @@ export const getHighImportance = internalQuery({
     limit: v.number(),
   },
   handler: async (ctx, args) => {
-    return await ctx.db
+    return ctx.db
       .query('longTermMemories')
       .withIndex('by_user', (q) =>
         q.eq('userId', args.userId).eq('isActive', true),
@@ -242,7 +240,7 @@ export const deleteMemory = internalMutation({
 export const listActive = query({
   args: { userId: v.id('users') },
   handler: async (ctx, args) => {
-    return await ctx.db
+    return ctx.db
       .query('longTermMemories')
       .withIndex('by_user', (q) =>
         q.eq('userId', args.userId).eq('isActive', true),

@@ -84,6 +84,5 @@ export {
   ButtonGroup,
   ButtonGroupSeparator,
   ButtonGroupText,
-  buttonGroupVariants
+  buttonGroupVariants,
 }
-

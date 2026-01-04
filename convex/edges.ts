@@ -70,7 +70,7 @@ export const upsertEdge = mutation({
     }
 
     // Create new edge
-    return await ctx.db.insert('memoryEdges', {
+    return ctx.db.insert('memoryEdges', {
       userId: args.userId,
       sourceName: args.sourceName,
       sourceType: args.sourceType,

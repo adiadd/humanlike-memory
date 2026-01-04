@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { cva } from 'class-variance-authority'
 import type { VariantProps } from 'class-variance-authority'
 
@@ -146,9 +145,7 @@ function FieldSeparator({
   children,
   className,
   ...props
-}: React.ComponentProps<'div'> & {
-  children?: React.ReactNode
-}) {
+}: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="field-separator"
@@ -180,34 +177,28 @@ function FieldError({
 }: React.ComponentProps<'div'> & {
   errors?: Array<{ message?: string } | undefined>
 }) {
-  const content = useMemo(() => {
-    if (children) {
-      return children
-    }
-
-    if (!errors?.length) {
-      return null
-    }
-
-    const uniqueErrors = [
-      ...new Map(errors.map((error) => [error?.message, error])).values(),
-    ]
-
-    if (uniqueErrors.length === 1) {
-      return uniqueErrors[0]?.message
-    }
-
+  if (children) {
     return (
-      <ul className="ml-4 flex list-disc flex-col gap-1">
-        {uniqueErrors.map(
-          (error, index) =>
-            error?.message && <li key={index}>{error.message}</li>,
-        )}
-      </ul>
+      <div
+        role="alert"
+        data-slot="field-error"
+        className={cn('text-destructive text-xs font-normal', className)}
+        {...props}
+      >
+        {children}
+      </div>
     )
-  }, [children, errors])
+  }
 
-  if (!content) {
+  if (!errors?.length) {
+    return null
+  }
+
+  const uniqueMessages = [...new Set(errors.map((e) => e?.message))].filter(
+    Boolean,
+  )
+
+  if (uniqueMessages.length === 0) {
     return null
   }
 
@@ -218,7 +209,15 @@ function FieldError({
       className={cn('text-destructive text-xs font-normal', className)}
       {...props}
     >
-      {content}
+      {uniqueMessages.length === 1 ? (
+        uniqueMessages[0]
+      ) : (
+        <ul className="ml-4 flex list-disc flex-col gap-1">
+          {uniqueMessages.map((message, index) => (
+            <li key={index}>{message}</li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }

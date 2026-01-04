@@ -5,6 +5,14 @@ import { Select as SelectPrimitive } from '@base-ui/react/select'
 
 import { CaretDownIcon, CaretUpIcon, CheckIcon } from '@phosphor-icons/react'
 import { cn } from '@/lib/utils'
+import {
+  formControlRing,
+  listItemBase,
+  popupAnimation,
+  popupContainer,
+  svgBehavior,
+  svgSize,
+} from '@/components/ui/styles'
 
 const Select = SelectPrimitive.Root
 
@@ -41,7 +49,10 @@ function SelectTrigger({
       data-slot="select-trigger"
       data-size={size}
       className={cn(
-        "border-input data-[placeholder]:text-muted-foreground dark:bg-input/30 dark:hover:bg-input/50 focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 gap-1.5 rounded-none border bg-transparent py-2 pr-2 pl-2.5 text-xs transition-colors select-none focus-visible:ring-1 aria-invalid:ring-1 data-[size=default]:h-8 data-[size=sm]:h-7 data-[size=sm]:rounded-none *:data-[slot=select-value]:flex *:data-[slot=select-value]:gap-1.5 [&_svg:not([class*='size-'])]:size-4 flex w-fit items-center justify-between whitespace-nowrap outline-none disabled:cursor-not-allowed disabled:opacity-50 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center [&_svg]:pointer-events-none [&_svg]:shrink-0",
+        formControlRing,
+        svgBehavior,
+        svgSize,
+        'border-input data-[placeholder]:text-muted-foreground dark:bg-input/30 dark:hover:bg-input/50 gap-1.5 rounded-none border bg-transparent py-2 pr-2 pl-2.5 text-xs transition-colors select-none data-[size=default]:h-8 data-[size=sm]:h-7 data-[size=sm]:rounded-none *:data-[slot=select-value]:flex *:data-[slot=select-value]:gap-1.5 flex w-fit items-center justify-between whitespace-nowrap outline-none disabled:cursor-not-allowed disabled:opacity-50 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center',
         className,
       )}
       {...props}
@@ -83,7 +94,9 @@ function SelectContent({
         <SelectPrimitive.Popup
           data-slot="select-content"
           className={cn(
-            'bg-popover text-popover-foreground data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 ring-foreground/10 min-w-36 rounded-none shadow-md ring-1 duration-100 relative isolate z-50 max-h-(--available-height) w-(--anchor-width) origin-(--transform-origin) overflow-x-hidden overflow-y-auto',
+            popupContainer,
+            popupAnimation,
+            'min-w-36 duration-100 relative isolate z-50 max-h-(--available-height) w-(--anchor-width) origin-(--transform-origin) overflow-x-hidden overflow-y-auto',
             className,
           )}
           {...props}
@@ -119,7 +132,8 @@ function SelectItem({
     <SelectPrimitive.Item
       data-slot="select-item"
       className={cn(
-        "focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground gap-2 rounded-none py-2 pr-8 pl-2 text-xs [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2 relative flex w-full cursor-default items-center outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+        listItemBase,
+        'focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2',
         className,
       )}
       {...props}
@@ -151,40 +165,45 @@ function SelectSeparator({
   )
 }
 
-function SelectScrollUpButton({
+function SelectScrollButton({
+  direction,
   className,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.ScrollUpArrow>) {
+}: { direction: 'up' | 'down' } & React.ComponentProps<
+  typeof SelectPrimitive.ScrollUpArrow
+>) {
+  const Icon = direction === 'up' ? CaretUpIcon : CaretDownIcon
+  const Component =
+    direction === 'up'
+      ? SelectPrimitive.ScrollUpArrow
+      : SelectPrimitive.ScrollDownArrow
+
   return (
-    <SelectPrimitive.ScrollUpArrow
-      data-slot="select-scroll-up-button"
+    <Component
+      data-slot={`select-scroll-${direction}-button`}
       className={cn(
-        "bg-popover z-10 flex cursor-default items-center justify-center py-1 [&_svg:not([class*='size-'])]:size-4 top-0 w-full",
+        svgSize,
+        'bg-popover z-10 flex cursor-default items-center justify-center py-1 w-full',
+        direction === 'up' ? 'top-0' : 'bottom-0',
         className,
       )}
       {...props}
     >
-      <CaretUpIcon />
-    </SelectPrimitive.ScrollUpArrow>
+      <Icon />
+    </Component>
   )
 }
 
-function SelectScrollDownButton({
-  className,
-  ...props
-}: React.ComponentProps<typeof SelectPrimitive.ScrollDownArrow>) {
-  return (
-    <SelectPrimitive.ScrollDownArrow
-      data-slot="select-scroll-down-button"
-      className={cn(
-        "bg-popover z-10 flex cursor-default items-center justify-center py-1 [&_svg:not([class*='size-'])]:size-4 bottom-0 w-full",
-        className,
-      )}
-      {...props}
-    >
-      <CaretDownIcon />
-    </SelectPrimitive.ScrollDownArrow>
-  )
+function SelectScrollUpButton(
+  props: Omit<React.ComponentProps<typeof SelectScrollButton>, 'direction'>,
+) {
+  return <SelectScrollButton direction="up" {...props} />
+}
+
+function SelectScrollDownButton(
+  props: Omit<React.ComponentProps<typeof SelectScrollButton>, 'direction'>,
+) {
+  return <SelectScrollButton direction="down" {...props} />
 }
 
 export {

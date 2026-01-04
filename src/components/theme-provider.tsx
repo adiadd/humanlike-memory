@@ -17,11 +17,25 @@ const ThemeProviderContext = React.createContext<
   ThemeProviderState | undefined
 >(undefined)
 
+/**
+ * Applies the resolved theme class to the document root.
+ * Note: Initial theme is set via inline script in __root.tsx to prevent flash.
+ * This effect handles theme changes after hydration and system preference changes.
+ */
+function applyTheme(theme: Theme) {
+  const root = window.document.documentElement
+  const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+  const resolvedTheme =
+    theme === 'system' ? (systemDark ? 'dark' : 'light') : theme
+
+  root.classList.remove('light', 'dark')
+  root.classList.add(resolvedTheme)
+}
+
 export function ThemeProvider({
   children,
   defaultTheme = 'system',
   storageKey = 'vite-ui-theme',
-  ...props
 }: ThemeProviderProps) {
   const [theme, setTheme] = React.useState<Theme>(() => {
     if (typeof window === 'undefined') {
@@ -30,33 +44,14 @@ export function ThemeProvider({
     return (localStorage.getItem(storageKey) as Theme | null) || defaultTheme
   })
 
+  // Apply theme on change and listen for system preference changes
   React.useEffect(() => {
-    const root = window.document.documentElement
+    applyTheme(theme)
 
-    root.classList.remove('light', 'dark')
-
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
-        .matches
-        ? 'dark'
-        : 'light'
-
-      root.classList.add(systemTheme)
-      return
-    }
-
-    root.classList.add(theme)
-  }, [theme])
-
-  React.useEffect(() => {
+    // Only listen for system changes when theme is 'system'
     if (theme === 'system') {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-
-      const handleChange = () => {
-        const root = window.document.documentElement
-        root.classList.remove('light', 'dark')
-        root.classList.add(mediaQuery.matches ? 'dark' : 'light')
-      }
+      const handleChange = () => applyTheme(theme)
 
       mediaQuery.addEventListener('change', handleChange)
       return () => mediaQuery.removeEventListener('change', handleChange)
@@ -72,7 +67,7 @@ export function ThemeProvider({
   }
 
   return (
-    <ThemeProviderContext.Provider {...props} value={value}>
+    <ThemeProviderContext.Provider value={value}>
       {children}
     </ThemeProviderContext.Provider>
   )

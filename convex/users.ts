@@ -1,4 +1,3 @@
-// convex/users.ts
 import { v } from 'convex/values'
 
 import { internalQuery, mutation, query } from './_generated/server'
@@ -47,7 +46,7 @@ export const getOrCreate = mutation({
 
     // Create new user
     const now = Date.now()
-    return await ctx.db.insert('users', {
+    return ctx.db.insert('users', {
       externalId: args.externalId,
       name: args.name,
       email: args.email,
@@ -63,7 +62,7 @@ export const getOrCreate = mutation({
 export const get = query({
   args: { userId: v.id('users') },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.userId)
+    return ctx.db.get(args.userId)
   },
 })
 
