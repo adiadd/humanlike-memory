@@ -154,7 +154,7 @@ export const detectPatternsWithLLM = internalAction({
       .join('\n')
 
     const { output } = await generateText({
-      model: anthropic('claude-3-5-haiku-latest'),
+      model: anthropic('claude-haiku-4-5'),
       output: Output.object({ schema: PatternSchema }),
       system: `You are analyzing a user's memory patterns to identify stable facts about them.
 Look for:

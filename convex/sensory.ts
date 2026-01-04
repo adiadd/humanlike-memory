@@ -2,7 +2,7 @@
 import { v } from 'convex/values'
 
 import { internal } from './_generated/api'
-import { internalMutation, mutation } from './_generated/server'
+import { internalMutation, mutation, query } from './_generated/server'
 
 const ATTENTION_THRESHOLD = 0.3
 
@@ -148,5 +148,17 @@ export const ingestFromThread = internalMutation({
     console.log(
       `ingestFromThread called for thread ${threadId}, user ${userId}`,
     )
+  },
+})
+
+// Public query for listing recent sensory memories (for debugging/visualization)
+export const listRecent = query({
+  args: { userId: v.id('users') },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('sensoryMemories')
+      .withIndex('by_user_status', (q) => q.eq('userId', args.userId))
+      .order('desc')
+      .take(50)
   },
 })

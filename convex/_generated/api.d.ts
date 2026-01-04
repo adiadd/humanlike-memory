@@ -22,6 +22,7 @@ import type * as reflection from "../reflection.js";
 import type * as retrieval from "../retrieval.js";
 import type * as sensory from "../sensory.js";
 import type * as shortTerm from "../shortTerm.js";
+import type * as threads from "../threads.js";
 import type * as users from "../users.js";
 
 import type {
@@ -45,6 +46,7 @@ declare const fullApi: ApiFromModules<{
   retrieval: typeof retrieval;
   sensory: typeof sensory;
   shortTerm: typeof shortTerm;
+  threads: typeof threads;
   users: typeof users;
 }>;
 

@@ -6,6 +6,7 @@ import {
   internalAction,
   internalMutation,
   internalQuery,
+  query,
 } from './_generated/server'
 import { memoryStats } from './components'
 
@@ -29,7 +30,16 @@ interface SearchResult {
   _id: Id<'longTermMemories'>
   _score: number
   isActive: boolean
+  summary: string
 }
+
+// Helper query to get a single memory by ID (used by searchSimilar action)
+export const getMemoryById = internalQuery({
+  args: { memoryId: v.id('longTermMemories') },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.memoryId)
+  },
+})
 
 // Query for high-importance memories (used by reflection)
 export const getHighImportance = internalQuery({
@@ -67,7 +77,7 @@ export const consolidateFromSTM = internalAction({
     if (!stm) return
 
     // Check for duplicates via vector similarity
-    const similar: Array<SearchResult> = await ctx.runQuery(
+    const similar: Array<SearchResult> = await ctx.runAction(
       internal.longTerm.searchSimilar,
       {
         userId: stm.userId,
@@ -169,26 +179,43 @@ export const reinforce = internalMutation({
   },
 })
 
-export const searchSimilar = internalQuery({
+export const searchSimilar = internalAction({
   args: {
     userId: v.id('users'),
     embedding: v.array(v.float64()),
     limit: v.number(),
   },
-  handler: async (ctx, args) => {
-    // Use Convex vector search API
-
-    const db = ctx.db as any
-    const results = await db.vectorSearch('longTermMemories', 'embedding_idx', {
-      vector: args.embedding,
-      limit: args.limit,
-      filter: (q: { eq: (field: string, value: unknown) => unknown }) =>
-        q.eq('userId', args.userId),
-    })
-    // Filter for isActive in JS since filterFields may be limited
-    return results.filter(
-      (r: { isActive: boolean; _score: number }) => r.isActive,
+  handler: async (ctx, args): Promise<Array<SearchResult>> => {
+    // Vector search is only available in actions
+    const results = await ctx.vectorSearch(
+      'longTermMemories',
+      'embedding_idx',
+      {
+        vector: args.embedding,
+        limit: args.limit,
+        filter: (q) => q.eq('userId', args.userId),
+      },
     )
+
+    // Fetch full documents and filter for isActive
+    const docs: Array<SearchResult | null> = await Promise.all(
+      results.map(async (r): Promise<SearchResult | null> => {
+        const doc = await ctx.runQuery(internal.longTerm.getMemoryById, {
+          memoryId: r._id,
+        })
+        if (doc && doc.isActive) {
+          return {
+            _id: doc._id,
+            _score: r._score,
+            isActive: doc.isActive,
+            summary: doc.summary,
+          }
+        }
+        return null
+      }),
+    )
+
+    return docs.filter((d): d is SearchResult => d !== null)
   },
 })
 
@@ -208,5 +235,19 @@ export const deleteMemory = internalMutation({
     if (newDoc) {
       await memoryStats.replace(ctx, oldDoc, newDoc)
     }
+  },
+})
+
+// Public query for listing active long-term memories
+export const listActive = query({
+  args: { userId: v.id('users') },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('longTermMemories')
+      .withIndex('by_user', (q) =>
+        q.eq('userId', args.userId).eq('isActive', true),
+      )
+      .order('desc')
+      .take(100)
   },
 })

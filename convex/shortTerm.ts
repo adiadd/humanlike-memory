@@ -170,3 +170,17 @@ export const byThread = query({
       .take(20)
   },
 })
+
+// Public query for listing active STMs for a user
+export const listActive = query({
+  args: { userId: v.id('users') },
+  handler: async (ctx, args) => {
+    const now = Date.now()
+    return await ctx.db
+      .query('shortTermMemories')
+      .withIndex('by_user_importance', (q) => q.eq('userId', args.userId))
+      .filter((q) => q.gt(q.field('expiresAt'), now))
+      .order('desc')
+      .take(50)
+  },
+})

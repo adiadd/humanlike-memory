@@ -73,7 +73,7 @@ export const extractAndEmbed = internalAction({
 
     // 3. Extract entities and relationships using generateText + Output.object
     const { output: extraction } = await generateText({
-      model: anthropic('claude-3-5-haiku-latest'),
+      model: anthropic('claude-haiku-4-5'),
       output: Output.object({ schema: ExtractionSchema }),
       system: `Extract entities and relationships from user messages.
 Rules:
