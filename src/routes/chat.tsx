@@ -210,7 +210,9 @@ function ChatPage() {
           /* No Thread Selected */
           <div className="flex flex-1 flex-col items-center justify-center">
             <Brain className="mb-4 size-12 text-muted-foreground" />
-            <h2 className="mb-2 text-lg font-medium">Welcome to Humanlike Memory</h2>
+            <h2 className="mb-2 text-lg font-medium">
+              Welcome to Humanlike Memory
+            </h2>
             <p className="mb-6 text-sm text-muted-foreground">
               Select a conversation or start a new one
             </p>
