@@ -1,4 +1,4 @@
-# Human-Like Memory for AI Agents: The Unified Plan (v2)
+# Human-like Memory for AI Agents: The Unified Plan (v2)
 
 > _"The evolution of agentic memory won't be about storing more. It will be about thinking better."_
 

@@ -1,5 +1,16 @@
 'use client'
 
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  PaperclipIcon,
+  XIcon,
+} from 'lucide-react'
+import { createContext, memo, useContext, useEffect, useState } from 'react'
+import { Streamdown } from 'streamdown'
+import type { ComponentProps, HTMLAttributes, ReactElement } from 'react'
+import type { FileUIPart, UIMessage } from 'ai'
+
 import { Button } from '@/components/ui/button'
 import { ButtonGroup, ButtonGroupText } from '@/components/ui/button-group'
 import {
@@ -9,16 +20,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
-import type { FileUIPart, UIMessage } from 'ai'
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  PaperclipIcon,
-  XIcon,
-} from 'lucide-react'
-import type { ComponentProps, HTMLAttributes, ReactElement } from 'react'
-import { createContext, memo, useContext, useEffect, useState } from 'react'
-import { Streamdown } from 'streamdown'
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage['role']
@@ -81,7 +82,7 @@ export const MessageAction = ({
   ...props
 }: MessageActionProps) => {
   const button = (
-    <Button size={size} type="button" variant={variant} {...props}>
+    <Button size={size} variant={variant} {...props}>
       {children}
       <span className="sr-only">{label || tooltip}</span>
     </Button>
@@ -108,8 +109,8 @@ type MessageBranchContextType = {
   totalBranches: number
   goToPrevious: () => void
   goToNext: () => void
-  branches: ReactElement[]
-  setBranches: (branches: ReactElement[]) => void
+  branches: Array<ReactElement>
+  setBranches: (branches: Array<ReactElement>) => void
 }
 
 const MessageBranchContext = createContext<MessageBranchContextType | null>(
@@ -140,7 +141,7 @@ export const MessageBranch = ({
   ...props
 }: MessageBranchProps) => {
   const [currentBranch, setCurrentBranch] = useState(defaultBranch)
-  const [branches, setBranches] = useState<ReactElement[]>([])
+  const [branches, setBranches] = useState<Array<ReactElement>>([])
 
   const handleBranchChange = (newBranch: number) => {
     setCurrentBranch(newBranch)
@@ -247,7 +248,6 @@ export const MessageBranchPrevious = ({
       disabled={totalBranches <= 1}
       onClick={goToPrevious}
       size="icon-sm"
-      type="button"
       variant="ghost"
       {...props}
     >
@@ -271,7 +271,6 @@ export const MessageBranchNext = ({
       disabled={totalBranches <= 1}
       onClick={goToNext}
       size="icon-sm"
-      type="button"
       variant="ghost"
       {...props}
     >
@@ -332,7 +331,9 @@ export function MessageAttachment({
 }: MessageAttachmentProps) {
   const filename = data.filename || ''
   const mediaType =
-    data.mediaType?.startsWith('image/') && data.url ? 'image' : 'file'
+    data.mediaType && data.mediaType.startsWith('image/') && data.url
+      ? 'image'
+      : 'file'
   const isImage = mediaType === 'image'
   const attachmentLabel = filename || (isImage ? 'Image' : 'Attachment')
 
@@ -361,7 +362,6 @@ export function MessageAttachment({
                 e.stopPropagation()
                 onRemove()
               }}
-              type="button"
               variant="ghost"
             >
               <XIcon />
@@ -376,7 +376,6 @@ export function MessageAttachment({
               render={
                 <div className="flex size-full shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground" />
               }
-              nativeButton={false}
             >
               <PaperclipIcon className="size-4" />
             </TooltipTrigger>
@@ -392,7 +391,6 @@ export function MessageAttachment({
                 e.stopPropagation()
                 onRemove()
               }}
-              type="button"
               variant="ghost"
             >
               <XIcon />

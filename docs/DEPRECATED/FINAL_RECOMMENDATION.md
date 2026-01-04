@@ -1,4 +1,4 @@
-# Human-Like Memory for AI Agents: The Unified Plan
+# Human-like Memory for AI Agents: The Unified Plan
 
 > _"The evolution of agentic memory won't be about storing more. It will be about thinking better."_
 
@@ -34,7 +34,7 @@ Problems:
 A **cognitive memory architecture** that mirrors how humans actually process experience:
 
 ```
-Human-Like Approach:
+Human-like Approach:
 Input → Filter → Short-Term Buffer → Consolidate → Long-Term Graph
                                             ↓
                                     Core Memory (Identity)

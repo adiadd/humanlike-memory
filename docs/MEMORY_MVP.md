@@ -1,4 +1,4 @@
-# Human-Like Memory for AI Agents: MVP Implementation
+# Human-like Memory for AI Agents: MVP Implementation
 
 > _"Memory is not retrieval. Memory is cognition."_
 

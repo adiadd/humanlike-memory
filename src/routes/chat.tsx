@@ -1,4 +1,3 @@
-import * as React from 'react'
 import {
   optimisticallySendMessage,
   useSmoothText,
@@ -20,6 +19,8 @@ import {
 } from '@phosphor-icons/react'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useAction, useMutation, useQuery } from 'convex/react'
+import * as React from 'react'
+import { Streamdown } from 'streamdown'
 import type { UIMessage } from '@convex-dev/agent/react'
 
 import type { Id } from '@/lib/convex'
@@ -45,7 +46,6 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
-import { Streamdown } from 'streamdown'
 import {
   Tooltip,
   TooltipContent,
@@ -169,7 +169,7 @@ function ChatPage() {
         <div className="flex items-center justify-between border-b p-4">
           <div className="flex items-center gap-2">
             <Brain className="size-5 text-primary" weight="duotone" />
-            <span className="text-sm font-semibold">Humanlike Memory</span>
+            <span className="text-sm font-semibold">Human-like Memory</span>
           </div>
           <Button variant="ghost" size="icon-xs" onClick={handleNewThread}>
             <Plus className="size-4" />
@@ -362,7 +362,7 @@ function ChatPage() {
           <div className="flex flex-1 flex-col items-center justify-center">
             <Brain className="mb-4 size-12 text-muted-foreground" />
             <h2 className="mb-2 text-lg font-medium">
-              Welcome to Humanlike Memory
+              Welcome to Human-like Memory
             </h2>
             <p className="mb-6 text-sm text-muted-foreground">
               Select a conversation or start a new one

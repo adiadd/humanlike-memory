@@ -1,4 +1,4 @@
-# Human-Like Memory for AI Agents: MVP Recommendations
+# Human-like Memory for AI Agents: MVP Recommendations
 
 ## Executive Summary
 

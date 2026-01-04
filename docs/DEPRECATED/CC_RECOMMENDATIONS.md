@@ -1,4 +1,4 @@
-# Human-Like Memory System for AI Agents
+# Human-like Memory System for AI Agents
 
 ## CC_RECOMMENDATIONS.md
 
@@ -121,7 +121,7 @@ Problems:
 Move from **reactive retrieval** to **active cognition**:
 
 ```
-Human-Like Approach:
+Human-like Approach:
 Input → Filter → Short-Term Buffer → Consolidate → Long-Term Graph
                                             ↓
                                     Core Memory (Identity)

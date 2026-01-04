@@ -1,6 +1,3 @@
-import * as React from 'react'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useMutation } from 'convex/react'
 import {
   Brain,
   ChatCircle,
@@ -8,6 +5,9 @@ import {
   Lightning,
   Sparkle,
 } from '@phosphor-icons/react'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useMutation } from 'convex/react'
+import * as React from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -56,7 +56,7 @@ function LandingPage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <div className="flex items-center gap-2">
             <Brain className="size-6 text-primary" weight="duotone" />
-            <span className="text-sm font-semibold">Human-Like Memory</span>
+            <span className="text-sm font-semibold">Human-like Memory</span>
           </div>
         </div>
       </header>
@@ -72,7 +72,7 @@ function LandingPage() {
           </div>
 
           <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl">
-            Human-Like Memory
+            Human-like Memory
             <br />
             <span className="text-primary">for AI Agents</span>
           </h1>
@@ -147,7 +147,7 @@ function LandingPage() {
       {/* Footer */}
       <footer className="border-t px-6 py-6">
         <div className="mx-auto flex max-w-6xl items-center justify-between text-xs text-muted-foreground">
-          <span>Human-Like Memory MVP</span>
+          <span>Human-like Memory MVP</span>
           <span>Memory is cognition, not storage.</span>
         </div>
       </footer>

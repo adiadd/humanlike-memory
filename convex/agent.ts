@@ -8,38 +8,6 @@ import { z } from 'zod'
 import { components, internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 
-// Tool: Save important facts to core memory
-// NOTE: Tools are defined before the agent so they can be referenced
-const saveToCore = createTool({
-  description: 'Save an important fact about the user to permanent memory',
-  args: z.object({
-    content: z.string().describe('The fact to remember'),
-    category: z.enum([
-      'identity',
-      'preference',
-      'relationship',
-      'behavioral',
-      'goal',
-      'constraint',
-    ]),
-  }),
-  handler: async (ctx, args): Promise<{ saved: boolean }> => {
-    const { embedding } = await embed({
-      model: openai.embeddingModel('text-embedding-3-small'),
-      value: args.content,
-    })
-    await ctx.runMutation(internal.core.create, {
-      content: args.content,
-      embedding,
-      category: args.category,
-      confidence: 0.8,
-      evidenceCount: 1,
-      userId: ctx.userId as Id<'users'>,
-    })
-    return { saved: true }
-  },
-})
-
 // Tool: Search across all memory layers
 const searchMemories = createTool({
   description: 'Search memories for relevant context',
