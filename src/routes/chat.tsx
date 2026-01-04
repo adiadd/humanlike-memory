@@ -116,7 +116,7 @@ function ChatPage() {
         <div className="flex items-center justify-between border-b p-4">
           <div className="flex items-center gap-2">
             <Brain className="size-5 text-primary" weight="duotone" />
-            <span className="text-sm font-semibold">Memory AI</span>
+            <span className="text-sm font-semibold">Humanlike Memory</span>
           </div>
           <Button variant="ghost" size="icon-xs" onClick={handleNewThread}>
             <Plus className="size-4" />
@@ -188,8 +188,7 @@ function ChatPage() {
         <div className="border-t p-4">
           <Button
             variant="ghost"
-            size="sm"
-            className="w-full justify-start"
+            className="h-auto w-full justify-start gap-2 px-3 py-2"
             onClick={handleLogout}
           >
             <CaretLeft className="size-4" />
@@ -211,7 +210,7 @@ function ChatPage() {
           /* No Thread Selected */
           <div className="flex flex-1 flex-col items-center justify-center">
             <Brain className="mb-4 size-12 text-muted-foreground" />
-            <h2 className="mb-2 text-lg font-medium">Welcome to Memory AI</h2>
+            <h2 className="mb-2 text-lg font-medium">Welcome to Humanlike Memory</h2>
             <p className="mb-6 text-sm text-muted-foreground">
               Select a conversation or start a new one
             </p>
