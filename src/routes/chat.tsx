@@ -6,18 +6,34 @@ import {
 } from '@convex-dev/agent/react'
 import {
   Brain,
+  CaretDown,
   CaretLeft,
+  CaretUp,
   ChartBar,
+  Lightning,
   PaperPlaneTilt,
   Plus,
   Sparkle,
   Spinner,
+  Trash,
+  User,
 } from '@phosphor-icons/react'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useAction, useMutation, useQuery } from 'convex/react'
 import type { UIMessage } from '@convex-dev/agent/react'
 
 import type { Id } from '@/lib/convex'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -29,6 +45,12 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
+import { Streamdown } from 'streamdown'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { api } from '@/lib/convex'
 
 // Types for thread and core memory
@@ -55,6 +77,9 @@ function ChatPage() {
     null,
   )
   const [message, setMessage] = React.useState('')
+  const [threadToDelete, setThreadToDelete] = React.useState<Thread | null>(
+    null,
+  )
 
   // Load userId from localStorage on mount
   React.useEffect(() => {
@@ -78,6 +103,17 @@ function ChatPage() {
     api.core.listActive,
     userId ? { userId } : 'skip',
   ) as Array<CoreMemory> | undefined
+  const sensoryMemories = useQuery(
+    api.sensory.listRecent,
+    userId ? { userId } : 'skip',
+  ) as Array<{ _id: string; status: string }> | undefined
+  const shortTermMemories = useQuery(
+    api.shortTerm.listActive,
+    userId ? { userId } : 'skip',
+  ) as Array<{ _id: string }> | undefined
+
+  // Mutations
+  const archiveThread = useMutation(api.threads.archive)
 
   // Actions
   const createConversation = useAction(api.chat.createConversation)
@@ -92,6 +128,23 @@ function ChatPage() {
       setSelectedThreadId(result.threadId)
     } catch (error) {
       console.error('Failed to create conversation:', error)
+    }
+  }
+
+  const handleDeleteThread = async () => {
+    if (!threadToDelete || !userId) return
+    try {
+      await archiveThread({
+        threadId: threadToDelete._id,
+        userId,
+      })
+      // Clear selection if we deleted the selected thread
+      if (selectedThreadId === threadToDelete._id) {
+        setSelectedThreadId(null)
+      }
+      setThreadToDelete(null)
+    } catch (error) {
+      console.error('Failed to delete conversation:', error)
     }
   }
 
@@ -140,44 +193,141 @@ function ChatPage() {
               </div>
             ) : (
               threads.map((thread) => (
-                <button
-                  type="button"
+                <div
                   key={thread._id}
-                  onClick={() => setSelectedThreadId(thread._id)}
-                  className={`w-full rounded-md px-3 py-2 text-left text-xs transition-colors ${
+                  className={`group flex items-center gap-1 rounded-md transition-colors ${
                     selectedThreadId === thread._id
                       ? 'bg-primary/10 text-primary'
                       : 'hover:bg-muted'
                   }`}
                 >
-                  {thread.title || 'Untitled'}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedThreadId(thread._id)}
+                    className="min-w-0 flex-1 truncate px-3 py-2 text-left text-xs"
+                  >
+                    {thread.title || 'Untitled'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setThreadToDelete(thread)
+                    }}
+                    className="mr-1 rounded p-1 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                    aria-label="Delete conversation"
+                  >
+                    <Trash className="size-3.5" />
+                  </button>
+                </div>
               ))
             )}
           </div>
         </ScrollArea>
 
-        {/* Memory Stats */}
+        {/* Memory Pipeline */}
         <div className="border-t p-4">
-          <div className="mb-2 flex items-center justify-between text-xs font-medium text-muted-foreground">
-            <span>Memory Stats</span>
+          <div className="mb-3 flex items-center justify-between text-xs font-medium text-muted-foreground">
+            <span>Memory Pipeline</span>
             <Link to="/memory" className="text-primary hover:underline">
               View All
             </Link>
           </div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="rounded-md bg-muted/50 p-2">
-              <div className="text-muted-foreground">Core</div>
-              <div className="font-medium">{memoryStats?.core ?? 0}</div>
+
+          {/* Visual Pipeline */}
+          <div className="space-y-2 text-xs">
+            {/* Sensory Layer */}
+            <div className="flex items-center gap-2">
+              <div className="flex size-6 items-center justify-center rounded bg-blue-500/10 text-blue-600">
+                <Lightning className="size-3" weight="fill" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Sensory</span>
+                  <span className="font-medium">
+                    {sensoryMemories?.length ?? 0}
+                  </span>
+                </div>
+                <div className="mt-0.5 h-1 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full bg-blue-500 transition-all"
+                    style={{
+                      width: `${Math.min((sensoryMemories?.length ?? 0) * 10, 100)}%`,
+                    }}
+                  />
+                </div>
+              </div>
             </div>
-            <div className="rounded-md bg-muted/50 p-2">
-              <div className="text-muted-foreground">Long-term</div>
-              <div className="font-medium">{memoryStats?.total ?? 0}</div>
+
+            {/* Short-term Layer */}
+            <div className="flex items-center gap-2">
+              <div className="flex size-6 items-center justify-center rounded bg-amber-500/10 text-amber-600">
+                <Brain className="size-3" weight="duotone" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Short-term</span>
+                  <span className="font-medium">
+                    {shortTermMemories?.length ?? 0}
+                  </span>
+                </div>
+                <div className="mt-0.5 h-1 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full bg-amber-500 transition-all"
+                    style={{
+                      width: `${Math.min((shortTermMemories?.length ?? 0) * 10, 100)}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Long-term Layer */}
+            <div className="flex items-center gap-2">
+              <div className="flex size-6 items-center justify-center rounded bg-green-500/10 text-green-600">
+                <ChartBar className="size-3" weight="fill" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Long-term</span>
+                  <span className="font-medium">{memoryStats?.total ?? 0}</span>
+                </div>
+                <div className="mt-0.5 h-1 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full bg-green-500 transition-all"
+                    style={{
+                      width: `${Math.min((memoryStats?.total ?? 0) * 10, 100)}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Core Layer */}
+            <div className="flex items-center gap-2">
+              <div className="flex size-6 items-center justify-center rounded bg-primary/10 text-primary">
+                <Sparkle className="size-3" weight="fill" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Core</span>
+                  <span className="font-medium">{memoryStats?.core ?? 0}</span>
+                </div>
+                <div className="mt-0.5 h-1 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full bg-primary transition-all"
+                    style={{
+                      width: `${Math.min((memoryStats?.core ?? 0) * 20, 100)}%`,
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
+
           <Link
             to="/memory"
-            className="mt-3 flex w-full items-center justify-start gap-2 rounded-md border bg-background px-3 py-2 text-xs hover:bg-muted"
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-md border bg-background px-3 py-2 text-xs font-medium hover:bg-muted"
           >
             <ChartBar className="size-4" />
             Memory Dashboard
@@ -188,7 +338,7 @@ function ChatPage() {
         <div className="border-t p-4">
           <Button
             variant="ghost"
-            className="h-auto w-full justify-start gap-2 px-3 py-2"
+            className="h-[44px] w-full justify-start gap-2 px-3"
             onClick={handleLogout}
           >
             <CaretLeft className="size-4" />
@@ -205,6 +355,7 @@ function ChatPage() {
             userId={userId}
             message={message}
             setMessage={setMessage}
+            coreMemories={coreMemories}
           />
         ) : (
           /* No Thread Selected */
@@ -254,6 +405,35 @@ function ChatPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={threadToDelete !== null}
+        onOpenChange={(open) => !open && setThreadToDelete(null)}
+      >
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogMedia className="bg-destructive/10">
+              <Trash className="text-destructive" />
+            </AlertDialogMedia>
+            <AlertDialogTitle>Delete conversation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will archive &ldquo;{threadToDelete?.title || 'Untitled'}
+              &rdquo; and hide it from your conversation list. Your memories
+              from this conversation will be preserved.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={handleDeleteThread}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
@@ -264,13 +444,16 @@ function ChatArea({
   userId,
   message,
   setMessage,
+  coreMemories,
 }: {
   threadId: string
   userId: Id<'users'>
   message: string
   setMessage: (message: string) => void
+  coreMemories: Array<CoreMemory> | undefined
 }) {
   const messagesEndRef = React.useRef<HTMLDivElement>(null)
+  const [showCoreMemories, setShowCoreMemories] = React.useState(true)
 
   // Use the streaming messages hook
   const { results: messages, status } = useUIMessages(
@@ -317,6 +500,46 @@ function ChatArea({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      {/* Core Memory Context Banner */}
+      {coreMemories && coreMemories.length > 0 && (
+        <div className="border-b bg-muted/30">
+          <button
+            type="button"
+            onClick={() => setShowCoreMemories(!showCoreMemories)}
+            className="flex w-full items-center gap-2 px-4 py-2 text-xs hover:bg-muted/50"
+          >
+            <Sparkle className="size-3 text-primary" weight="fill" />
+            <span className="font-medium">
+              Active Context: {coreMemories.length} core memories shaping this
+              conversation
+            </span>
+            {showCoreMemories ? (
+              <CaretUp className="size-3 text-muted-foreground" />
+            ) : (
+              <CaretDown className="size-3 text-muted-foreground" />
+            )}
+          </button>
+          {showCoreMemories && (
+            <div className="flex flex-wrap gap-2 px-4 pb-3">
+              {coreMemories.map((memory) => (
+                <div
+                  key={memory._id}
+                  className="flex items-center gap-1.5 rounded-full border bg-background px-2.5 py-1 text-xs"
+                >
+                  <span
+                    className="size-1.5 rounded-full bg-primary"
+                    aria-hidden="true"
+                  />
+                  <span className="max-w-[200px] truncate">
+                    {memory.content}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Messages */}
       <ScrollArea className="min-h-0 flex-1 p-4">
         <div className="mx-auto max-w-2xl space-y-4">
@@ -384,15 +607,59 @@ function Message({ message }: { message: UIMessage }) {
   })
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+      {/* Avatar */}
       <div
-        className={`max-w-[80%] rounded-lg px-4 py-2 text-sm ${
+        className={`flex size-8 shrink-0 items-center justify-center rounded-full ${
           isUser ? 'bg-primary text-primary-foreground' : 'bg-muted'
-        } ${message.status === 'streaming' ? 'animate-pulse' : ''}`}
+        }`}
       >
-        {visibleText || (message.status === 'streaming' ? '...' : '')}
-        {message.status === 'failed' && (
-          <span className="ml-2 text-xs text-red-500">(failed)</span>
+        {isUser ? (
+          <User className="size-4" weight="bold" />
+        ) : (
+          <Brain className="size-4" weight="duotone" />
+        )}
+      </div>
+
+      {/* Message content */}
+      <div
+        className={`flex max-w-[80%] flex-col gap-1 ${isUser ? 'items-end' : 'items-start'}`}
+      >
+        <div
+          className={`rounded-2xl px-4 py-2.5 ${
+            isUser
+              ? 'rounded-tr-sm bg-primary text-primary-foreground'
+              : 'rounded-tl-sm bg-muted'
+          } ${message.status === 'streaming' ? 'animate-pulse' : ''}`}
+        >
+          {visibleText ? (
+            <Streamdown
+              mode="streaming"
+              isAnimating={message.status === 'streaming'}
+              controls={message.status !== 'streaming'}
+              className="text-sm [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+            >
+              {visibleText}
+            </Streamdown>
+          ) : (
+            message.status === 'streaming' && '...'
+          )}
+          {message.status === 'failed' && (
+            <span className="ml-2 text-xs text-red-500">(failed)</span>
+          )}
+        </div>
+
+        {/* Memory indicator for assistant messages */}
+        {!isUser && message.status === 'success' && (
+          <Tooltip>
+            <TooltipTrigger className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <Sparkle className="size-2.5" weight="fill" />
+              <span>Memory-informed response</span>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              This response was shaped by core memories and conversation context
+            </TooltipContent>
+          </Tooltip>
         )}
       </div>
     </div>

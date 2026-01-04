@@ -287,7 +287,9 @@ function MemoryDashboard() {
                   ) : shortTermMemories.length === 0 ? (
                     <EmptyState
                       message="No short-term memories"
-                      icon={<Clock className="mb-4 size-12 text-amber-500/30" />}
+                      icon={
+                        <Clock className="mb-4 size-12 text-amber-500/30" />
+                      }
                       hint="Messages that pass the attention filter (typically >30% attention score) are promoted here. Short-term memory groups related messages by topic and extracts entities."
                     />
                   ) : (
@@ -360,7 +362,9 @@ function MemoryDashboard() {
                   ) : longTermMemories.length === 0 ? (
                     <EmptyState
                       message="No long-term memories yet"
-                      icon={<Database className="mb-4 size-12 text-green-500/30" />}
+                      icon={
+                        <Database className="mb-4 size-12 text-green-500/30" />
+                      }
                       hint="Short-term memories that persist across conversations and show recurring patterns are consolidated here. Long-term memories are categorized as episodic (events) or semantic (facts)."
                     />
                   ) : (
@@ -444,7 +448,9 @@ function MemoryDashboard() {
                   ) : coreMemories.length === 0 ? (
                     <EmptyState
                       message="No core memories yet"
-                      icon={<Sparkle className="mb-4 size-12 text-purple-500/30" />}
+                      icon={
+                        <Sparkle className="mb-4 size-12 text-purple-500/30" />
+                      }
                       hint="The reflection engine analyzes patterns across your conversations and promotes stable identity facts here. Core memories include your name, preferences, relationships, and beliefs."
                     />
                   ) : (

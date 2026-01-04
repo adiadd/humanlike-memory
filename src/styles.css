@@ -5,6 +5,8 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@source "../node_modules/streamdown/dist/*.js";
+
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -126,4 +128,28 @@
   html {
     @apply font-sans;
   }
+}
+
+/* Streamdown markdown rendering in chat bubbles */
+[data-streamdown] {
+  /* Ensure proper line height and spacing */
+  line-height: 1.5;
+}
+
+[data-streamdown] pre {
+  /* Ensure code blocks fit within chat bubble max-width */
+  overflow-x: auto;
+  max-width: 100%;
+  border-radius: var(--radius);
+}
+
+[data-streamdown] code:not(pre code) {
+  /* Inline code styling */
+  padding: 0.125rem 0.25rem;
+  border-radius: calc(var(--radius) - 4px);
+  background-color: oklch(0 0 0 / 10%);
+}
+
+.dark [data-streamdown] code:not(pre code) {
+  background-color: oklch(1 1 1 / 10%);
 }
